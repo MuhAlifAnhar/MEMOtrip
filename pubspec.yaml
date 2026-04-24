@@ -1,0 +1,39 @@
+name: memotrip
+description: "MEMOtrip — Smart Travel Planner & Memory Keeper with IoT Monitoring"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.6
+
+  # UI & Design
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+
+  # Navigation & Maps
+  url_launcher: ^6.3.1
+
+  # Social Sharing
+  share_plus: ^10.1.4
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
