@@ -1,18 +1,22 @@
-/// Firebase Service — Placeholder for Firebase initialization and helpers.
+import 'package:firebase_core/firebase_core.dart';
+
+/// Firebase Service — Helper utilities for Firebase integration.
 ///
-/// This service will be activated once google-services.json is configured.
-/// For now, it provides a mock interface for the app to reference.
+/// Firebase is initialized in main.dart via Firebase.initializeApp().
+/// This service provides convenience helpers and status checks.
 class FirebaseService {
   FirebaseService._();
 
-  static bool _initialized = false;
-
-  /// Initialize Firebase. Call from main.dart.
-  static Future<void> initialize() async {
-    // TODO: Uncomment when google-services.json is ready
-    // await Firebase.initializeApp();
-    _initialized = true;
+  /// Check if Firebase has been initialized.
+  static bool get isInitialized {
+    try {
+      Firebase.app();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
-  static bool get isInitialized => _initialized;
+  /// Get the default Firebase app instance.
+  static FirebaseApp get app => Firebase.app();
 }

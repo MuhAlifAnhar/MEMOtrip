@@ -29,6 +29,7 @@ dependencies:
 
   # State Management
   flutter_riverpod: ^2.6.1
+  firebase_core: ^4.7.0
 
 dev_dependencies:
   flutter_test:
