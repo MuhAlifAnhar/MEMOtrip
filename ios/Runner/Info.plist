@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>MEMOtrip membutuhkan akses lokasi untuk menampilkan data cuaca BMKG yang akurat di sekitar Anda.</string>
 </dict>
 </plist>

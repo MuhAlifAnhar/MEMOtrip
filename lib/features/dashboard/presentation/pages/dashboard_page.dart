@@ -3,9 +3,12 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/services/bmkg_weather_service.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/placeholder_images.dart';
 import '../../../../core/widgets/app_network_image.dart';
+import '../../../../core/widgets/bmkg_weather_card.dart';
 import '../../../../core/widgets/sensor_data_card.dart';
 import '../../data/mock_sensor_data.dart';
 
@@ -27,6 +30,13 @@ class _DashboardPageState extends State<DashboardPage>
   late final Animation<double> _fadeAnim;
   late final Animation<Offset> _slideAnim;
 
+  // ─── BMKG Weather State ──────────────────────────────────
+  bool _isLoadingWeather = true;
+  BmkgWeather? _currentWeather;
+  List<BmkgHourlyForecast> _hourlyForecasts = [];
+  bool _isUsingRealLocation = false;
+  String? _weatherError;
+
   @override
   void initState() {
     super.initState();
@@ -46,12 +56,53 @@ class _DashboardPageState extends State<DashboardPage>
       curve: Curves.easeOutCubic,
     ));
     _entranceCtrl.forward();
+
+    // Trigger location + weather fetch on page load
+    _initWeather();
   }
 
   @override
   void dispose() {
     _entranceCtrl.dispose();
     super.dispose();
+  }
+
+  /// Initialize weather: request GPS permission → get location → fetch BMKG data.
+  Future<void> _initWeather() async {
+    setState(() {
+      _isLoadingWeather = true;
+      _weatherError = null;
+    });
+
+    try {
+      // Step 1: Get GPS location (this triggers the permission dialog)
+      final position = await LocationService.getCurrentPosition();
+      _isUsingRealLocation = position.isReal;
+
+      // Step 2: Fetch BMKG weather data using coordinates
+      final result = await BmkgWeatherService.fetchWeather(
+        position.lat,
+        position.lng,
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentWeather = result.current;
+          _hourlyForecasts = result.hourly;
+          _isLoadingWeather = false;
+          if (result.current == null) {
+            _weatherError = 'Data cuaca tidak tersedia';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingWeather = false;
+          _weatherError = 'Gagal memuat data cuaca';
+        });
+      }
+    }
   }
 
   @override
@@ -180,68 +231,20 @@ class _DashboardPageState extends State<DashboardPage>
       key: const ValueKey('conditionA'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Weather Card
+        // ══════════════════════════════════════════════════════
+        // BMKG Weather Card — Dynamic, real-time data
+        // ══════════════════════════════════════════════════════
         _AnimatedSection(
           index: 0,
           child: Padding(
             padding: AppSpacing.paddingSection,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: AppSpacing.borderRadiusCard,
-                boxShadow: [
-                  BoxShadow(
-                      color: AppColors.primary.withOpacity(0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6)),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on_rounded,
-                          color: Colors.white70, size: 16),
-                      const SizedBox(width: 4),
-                      Text('Makassar, Sulawesi Selatan',
-                          style: AppTypography.labelMedium
-                              .copyWith(color: Colors.white70)),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('29°',
-                          style: AppTypography.displayLarge.copyWith(
-                            color: Colors.white,
-                            fontSize: 56,
-                            fontWeight: FontWeight.w300,
-                          )),
-                      const SizedBox(width: AppSpacing.xl),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Cerah Berawan',
-                                style: AppTypography.headlineMedium
-                                    .copyWith(color: Colors.white)),
-                            const SizedBox(height: 4),
-                            Text('Kelembapan 72% • Angin 12 km/h',
-                                style: AppTypography.caption
-                                    .copyWith(color: Colors.white70)),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.wb_sunny_rounded,
-                          color: Colors.white, size: 40),
-                    ],
-                  ),
-                ],
-              ),
+            child: BmkgWeatherCard(
+              weather: _currentWeather,
+              hourlyForecasts: _hourlyForecasts,
+              isLoading: _isLoadingWeather,
+              isUsingRealLocation: _isUsingRealLocation,
+              errorMessage: _weatherError,
+              onRefresh: _initWeather,
             ),
           ),
         ),
