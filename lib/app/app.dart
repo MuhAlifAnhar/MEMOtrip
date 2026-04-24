@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
 import 'routes.dart';
+import 'auth_gate.dart';
 import '../core/constants/app_strings.dart';
 import '../core/utils/page_transitions.dart';
 import '../core/widgets/floating_navbar.dart';
@@ -19,7 +20,7 @@ class MemoTripApp extends StatelessWidget {
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const AppShell(),
+      home: const AuthGate(),
       // Apply custom page transitions to all named routes
       onGenerateRoute: (settings) {
         final routeBuilders = AppRoutes.routes;

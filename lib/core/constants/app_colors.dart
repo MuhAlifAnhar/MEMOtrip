@@ -84,6 +84,7 @@ class AppColors {
 
   // Category chip colours
   static const Color chipMountain = Color(0xFF66BB6A);
+  static const Color chipCulture = Color(0xFF7E57C2); // deep purple for cultural
   static const Color chipBeach = Color(0xFF29B6F6);
   static const Color chipCafe = Color(0xFFA1887F);
   static const Color chipRestaurant = Color(0xFFFF8A65);

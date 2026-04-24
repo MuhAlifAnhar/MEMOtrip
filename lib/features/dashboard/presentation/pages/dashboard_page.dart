@@ -3,6 +3,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/bmkg_weather_service.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/utils/date_formatter.dart';
@@ -57,6 +58,9 @@ class _DashboardPageState extends State<DashboardPage>
     ));
     _entranceCtrl.forward();
 
+    // Check location permission after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkLocationPermission());
+
     // Trigger location + weather fetch on page load
     _initWeather();
   }
@@ -103,6 +107,105 @@ class _DashboardPageState extends State<DashboardPage>
         });
       }
     }
+  }
+
+  /// Get user's first name from Firebase for personalized greeting.
+  String _getUserName() {
+    final name = AuthService.currentUser?.displayName;
+    if (name == null || name.trim().isEmpty) return 'Traveler 👋';
+    final firstName = name.trim().split(' ').first;
+    return '$firstName 👋';
+  }
+
+  /// Check location permission and show dialog if needed.
+  Future<void> _checkLocationPermission() async {
+    final status = await LocationService.ensurePermission();
+    if (!mounted || status == LocationStatus.granted) return;
+
+    late String title;
+    late String message;
+    late String actionLabel;
+    late VoidCallback action;
+
+    switch (status) {
+      case LocationStatus.serviceDisabled:
+        title = 'Lokasi Tidak Aktif';
+        message =
+            'MEMOtrip membutuhkan akses lokasi untuk menampilkan cuaca, '
+            'jarak destinasi, dan rekomendasi terdekat. '
+            'Aktifkan layanan lokasi di pengaturan perangkat Anda.';
+        actionLabel = 'Buka Pengaturan';
+        action = () {
+          Navigator.pop(context);
+          LocationService.openSettings();
+        };
+        break;
+      case LocationStatus.denied:
+        title = 'Izin Lokasi Diperlukan';
+        message =
+            'Untuk pengalaman terbaik, MEMOtrip memerlukan akses lokasi. '
+            'Berikan izin agar cuaca dan destinasi terdekat dapat ditampilkan.';
+        actionLabel = 'Coba Lagi';
+        action = () {
+          Navigator.pop(context);
+          _checkLocationPermission();
+        };
+        break;
+      case LocationStatus.deniedForever:
+        title = 'Izin Lokasi Diblokir';
+        message =
+            'Izin lokasi telah diblokir secara permanen. '
+            'Buka pengaturan aplikasi untuk mengaktifkan izin lokasi secara manual.';
+        actionLabel = 'Buka Pengaturan Aplikasi';
+        action = () {
+          Navigator.pop(context);
+          LocationService.openAppSettings();
+        };
+        break;
+      case LocationStatus.granted:
+        return;
+    }
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: AppSpacing.borderRadiusCard),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withOpacity(0.1),
+                borderRadius: AppSpacing.borderRadiusSmall,
+              ),
+              child: const Icon(Icons.location_off_rounded,
+                  color: AppColors.warning, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(title, style: AppTypography.headlineSmall),
+            ),
+          ],
+        ),
+        content: Text(message, style: AppTypography.bodyMedium),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Nanti',
+                style: AppTypography.labelMedium
+                    .copyWith(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton.icon(
+            onPressed: action,
+            icon: const Icon(Icons.location_on_rounded, size: 18),
+            label: Text(actionLabel),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -163,7 +266,7 @@ class _DashboardPageState extends State<DashboardPage>
               style: AppTypography.bodyMedium
                   .copyWith(color: AppColors.textSecondary)),
           const SizedBox(height: AppSpacing.xs),
-          Text('Traveler 👋', style: AppTypography.displayMedium),
+          Text(_getUserName(), style: AppTypography.displayMedium),
           const SizedBox(height: AppSpacing.base),
           // Location Toggle
           Container(

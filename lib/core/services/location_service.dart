@@ -86,9 +86,45 @@ class LocationService {
     }
   }
 
+  /// Check location permission status without getting position.
+  /// Returns a clear status for the UI to act on.
+  static Future<LocationStatus> ensurePermission() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return LocationStatus.serviceDisabled;
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return LocationStatus.denied;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        return LocationStatus.deniedForever;
+      }
+      return LocationStatus.granted;
+    } catch (_) {
+      return LocationStatus.serviceDisabled;
+    }
+  }
+
+  /// Open system location settings (for deniedForever case).
+  static Future<bool> openSettings() async {
+    return await Geolocator.openLocationSettings();
+  }
+
+  /// Open app settings (for deniedForever permission case).
+  static Future<bool> openAppSettings() async {
+    return await Geolocator.openAppSettings();
+  }
+
   /// Get address from coordinates.
   static Future<String> getAddressFromCoordinates(double lat, double lng) async {
     // TODO: Replace with Geocoding package
     return 'Jl. Penghibur, Makassar, Sulawesi Selatan';
   }
 }
+
+/// Status of location permission check.
+enum LocationStatus { granted, denied, deniedForever, serviceDisabled }
