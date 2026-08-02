@@ -13,7 +13,7 @@ dependencies:
   cupertino_icons: ^1.0.6
 
   # UI & Design
-  google_fonts: ^6.2.1
+
   cached_network_image: ^3.4.1
   shimmer: ^3.0.0
 
@@ -31,6 +31,7 @@ dependencies:
   flutter_riverpod: ^2.6.1
   firebase_core: ^4.7.0
   firebase_auth: ^6.4.0
+  panorama_viewer: ^1.0.6
 
 dev_dependencies:
   flutter_test:
@@ -43,3 +44,16 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter/Inter-Regular.ttf
+        - asset: assets/fonts/Inter/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter/Inter-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Inter/Inter-ExtraBold.ttf
+          weight: 800

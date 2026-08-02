@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:panorama_viewer/panorama_viewer.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -10,7 +11,7 @@ import '../../../../core/services/location_service.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/sensor_data_card.dart';
 import '../../../../core/widgets/community_review_card.dart';
-import '../../../dashboard/data/mock_sensor_data.dart';
+import '../../../../core/services/mock_iot_service.dart';
 import '../../data/mock_destination_data.dart';
 import '../../domain/entities/destination.dart';
 
@@ -50,8 +51,10 @@ class _DestinationDetailPageState extends State<DestinationDetailPage>
 
   @override
   Widget build(BuildContext context) {
-    final sensor = MockSensorData.getSensorByLocation(destination.hardwareId ?? '');
-    final snapshot = MockSensorData.getSnapshotByLocation(destination.hardwareId ?? '');
+    final sensors = MockIoTService.generateSensorReadings();
+    final snapshots = MockIoTService.generateCameraSnapshots();
+    final sensor = MockIoTService.getSensorByLocation(destination.hardwareId ?? '', sensors);
+    final snapshot = MockIoTService.getSnapshotByLocation(destination.hardwareId ?? '', snapshots);
     final reviews = MockDestinationData.getReviewsForDestination(destination.id);
     final dist = DistanceCalculator.haversine(
         LocationService.defaultLat, LocationService.defaultLng,
@@ -115,19 +118,32 @@ class _DestinationDetailPageState extends State<DestinationDetailPage>
                   Container(decoration: const BoxDecoration(gradient: AppColors.heroGradient)),
                     Positioned(
                       bottom: 16, left: 16,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: AppSpacing.borderRadiusFull,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.view_in_ar_rounded, color: Colors.white, size: 14),
-                            const SizedBox(width: 4),
-                            Text('360° View', style: AppTypography.labelSmall.copyWith(color: Colors.white)),
-                          ],
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PanoramaViewPage(
+                                title: destination.name,
+                                imagePath: 'assets/images/placeholder_360.png',
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: AppSpacing.borderRadiusFull,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.view_in_ar_rounded, color: Colors.white, size: 14),
+                              const SizedBox(width: 4),
+                              Text('360° View', style: AppTypography.labelSmall.copyWith(color: Colors.white)),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -214,7 +230,7 @@ class _DestinationDetailPageState extends State<DestinationDetailPage>
                             const SizedBox(height: AppSpacing.md),
                             Row(
                               children: [
-                                Expanded(child: SensorDataCard(label: AppStrings.suhu, value: sensor.suhu.toStringAsFixed(1), unit: AppStrings.celsius, icon: Icons.thermostat_rounded, iconColor: AppColors.accent)),
+                                Expanded(child: SensorDataCard(label: AppStrings.suhu, value: sensor.suhu.toStringAsFixed(1), unit: AppStrings.celsius, icon: Icons.thermostat_rounded, iconColor: AppColors.accent, isDanger: MockIoTService.isDanger(sensor.suhu))),
                                 const SizedBox(width: AppSpacing.sm),
                                 Expanded(child: SensorDataCard(label: AppStrings.kelembapan, value: sensor.kelembapan.toStringAsFixed(0), unit: AppStrings.persen, icon: Icons.water_drop_rounded, iconColor: AppColors.info)),
                                 const SizedBox(width: AppSpacing.sm),
@@ -762,3 +778,26 @@ class _RoutePathPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+/// 360 Degree Immersive Viewer Page
+class PanoramaViewPage extends StatelessWidget {
+  final String title;
+  final String imagePath;
+
+  const PanoramaViewPage({super.key, required this.title, required this.imagePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('360° $title'),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
+      body: PanoramaViewer(
+        child: Image.asset(imagePath),
+      ),
+    );
+  }
+}
+

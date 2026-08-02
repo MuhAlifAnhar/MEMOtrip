@@ -5,16 +5,16 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/sensor_data_card.dart';
-import '../../../dashboard/data/mock_sensor_data.dart';
+import '../../../../core/services/mock_iot_service.dart';
 
 class DevicesPage extends StatelessWidget {
   const DevicesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final sensors = MockSensorData.sensorReadings;
-    final snapshots = MockSensorData.cameraSnapshots;
-    final devices = MockSensorData.deviceStatuses;
+    final sensors = MockIoTService.generateSensorReadings();
+    final snapshots = MockIoTService.generateCameraSnapshots();
+    final devices = MockIoTService.generateDeviceStatuses();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -107,7 +107,8 @@ class DevicesPage extends StatelessWidget {
                               value: s.suhu.toStringAsFixed(1),
                               unit: AppStrings.celsius,
                               icon: Icons.thermostat_rounded,
-                              iconColor: AppColors.accent)),
+                              iconColor: AppColors.accent,
+                              isDanger: MockIoTService.isDanger(s.suhu))),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                           child: SensorDataCard(

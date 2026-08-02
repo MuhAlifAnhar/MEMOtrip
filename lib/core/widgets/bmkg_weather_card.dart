@@ -3,6 +3,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_spacing.dart';
 import '../constants/app_typography.dart';
 import '../services/bmkg_weather_service.dart';
+import '../utils/date_formatter.dart';
 
 /// Premium weather card widget that displays live BMKG data.
 ///
@@ -188,8 +189,14 @@ class BmkgWeatherCard extends StatelessWidget {
   Widget _buildWeatherContent(BuildContext context) {
     final w = weather!;
 
+    // Format like "Tue, 12 Mei 2026"
+    final dateStr = DateFormatter.fullDate(DateTime.now());
+    // Mock chance of rain for visual parity
+    const chanceOfRain = "60%";
+
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         gradient: _weatherGradient(w.weatherCode),
         borderRadius: AppSpacing.borderRadiusCard,
@@ -202,240 +209,125 @@ class BmkgWeatherCard extends StatelessWidget {
         ],
       ),
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          // Background pattern
+          // Background large emoji
           Positioned(
-            right: -30,
-            top: -20,
+            right: -20,
+            top: 20,
             child: Text(
               w.weatherEmoji,
-              style: const TextStyle(fontSize: 120),
-            ),
-          ),
-          Positioned(
-            right: -30,
-            top: -20,
-            child: Container(
-              width: 160,
-              height: 160,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
-              ),
+              style: const TextStyle(fontSize: 100),
             ),
           ),
           // Content
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Location row
-                Row(
-                  children: [
-                    Icon(
-                      isUsingRealLocation
-                          ? Icons.gps_fixed_rounded
-                          : Icons.location_on_rounded,
-                      color: Colors.white70,
-                      size: 14,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Date
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    dateStr,
+                    style: AppTypography.caption.copyWith(
+                      color: Colors.white.withOpacity(0.9),
                     ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        '${w.locationName}, ${w.province}',
-                        style: AppTypography.labelMedium
-                            .copyWith(color: Colors.white70),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (onRefresh != null)
-                      GestureDetector(
-                        onTap: onRefresh,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.refresh_rounded,
-                              color: Colors.white70, size: 14),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-
-                // Temperature + Description
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Temperature
-                    Text(
-                      '${w.temperature}°',
-                      style: AppTypography.displayLarge.copyWith(
-                        color: Colors.white,
-                        fontSize: 56,
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xl),
-                    // Description
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            w.weatherDesc,
-                            style: AppTypography.headlineMedium
-                                .copyWith(color: Colors.white),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Kelembapan ${w.humidity}% • Angin ${w.windSpeed.toStringAsFixed(0)} km/h',
-                            style: AppTypography.caption
-                                .copyWith(color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Weather emoji
-                    Text(w.weatherEmoji,
-                        style: const TextStyle(fontSize: 36)),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-
-                // Detail chips
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
-                    _detailChip(Icons.cloud_rounded,
-                        'Awan ${w.cloudCover}%'),
-                    _detailChip(Icons.explore_rounded,
-                        'Angin ${w.windDirection}'),
-                    _detailChip(Icons.visibility_rounded,
-                        w.visibility),
-                  ],
-                ),
-
-                // Hourly forecast strip
-                if (hourlyForecasts.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.lg),
-                  Container(
-                    height: 1,
-                    color: Colors.white.withOpacity(0.15),
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  SizedBox(
-                    height: 80,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: hourlyForecasts.length,
-                      itemBuilder: (_, i) =>
-                          _buildHourlyItem(hourlyForecasts[i], i == 0),
+                  if (onRefresh != null)
+                    GestureDetector(
+                      onTap: onRefresh,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.refresh_rounded,
+                            color: Colors.white70, size: 14),
+                      ),
                     ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              // Weather Desc
+              Text(
+                w.weatherDescEn != 'N/A' && w.weatherDescEn.isNotEmpty
+                    ? w.weatherDescEn
+                    : w.weatherDesc,
+                style: AppTypography.displayLarge.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 4),
+              // Chance of rain
+              Text(
+                'Chance of rain $chanceOfRain',
+                style: AppTypography.labelMedium.copyWith(color: Colors.white70),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              // Location
+              Row(
+                children: [
+                  const Icon(Icons.location_on_rounded,
+                      color: Colors.white, size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${w.locationName}, ${w.province}',
+                    style: AppTypography.labelMedium.copyWith(color: Colors.white),
                   ),
                 ],
-
-                // BMKG Attribution
-                const SizedBox(height: AppSpacing.md),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
-                    borderRadius: AppSpacing.borderRadiusFull,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              // Bottom row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    '${w.temperature}°',
+                    style: AppTypography.displayLarge.copyWith(
+                      color: Colors.white,
+                      fontSize: 48,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.verified_rounded,
-                          color: Colors.white.withOpacity(0.7), size: 12),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Sumber: BMKG',
-                        style: AppTypography.caption.copyWith(
-                          color: Colors.white.withOpacity(0.7),
-                          fontSize: 10,
-                        ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24.0, left: 2.0),
+                    child: Text(
+                      'C',
+                      style: AppTypography.headlineSmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                  const Spacer(),
+                  _buildBottomDetail(Icons.water_drop_rounded, '10%'),
+                  const SizedBox(width: 12),
+                  _buildBottomDetail(Icons.wb_sunny_rounded, '0.5'),
+                  const SizedBox(width: 12),
+                  _buildBottomDetail(Icons.air_rounded, '${w.windSpeed.toStringAsFixed(0)} km/h'),
+                ],
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // ─── Hourly Forecast Item ────────────────────────────────
-  Widget _buildHourlyItem(BmkgHourlyForecast forecast, bool isFirst) {
-    return Container(
-      width: 62,
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-      decoration: BoxDecoration(
-        color: isFirst
-            ? Colors.white.withOpacity(0.2)
-            : Colors.white.withOpacity(0.08),
-        borderRadius: AppSpacing.borderRadiusMedium,
-        border: isFirst
-            ? Border.all(color: Colors.white.withOpacity(0.3), width: 1)
-            : null,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          Text(
-            isFirst ? 'Now' : forecast.timeLabel,
-            style: AppTypography.caption.copyWith(
-              color: Colors.white.withOpacity(isFirst ? 1.0 : 0.7),
-              fontSize: 10,
-              fontWeight: isFirst ? FontWeight.w600 : FontWeight.w400,
-            ),
+  Widget _buildBottomDetail(IconData icon, String value) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: Colors.white70, size: 14),
+        const SizedBox(width: 4),
+        Text(
+          value,
+          style: AppTypography.labelMedium.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
           ),
-          Text(forecast.weatherEmoji,
-              style: const TextStyle(fontSize: 18)),
-          Text(
-            '${forecast.temperature}°',
-            style: AppTypography.labelSmall.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Detail Chip ────────────────────────────────────────
-  Widget _detailChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
-        borderRadius: AppSpacing.borderRadiusFull,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white70, size: 12),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: AppTypography.caption.copyWith(
-              color: Colors.white70,
-              fontSize: 10,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_spacing.dart';
 
@@ -36,7 +35,7 @@ class AppTheme {
       ),
 
       // Typography
-      textTheme: GoogleFonts.interTextTheme(),
+      fontFamily: 'Inter',
 
       // AppBar
       appBarTheme: AppBarTheme(
@@ -44,7 +43,8 @@ class AppTheme {
         scrolledUnderElevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: const TextStyle(
+          fontFamily: 'Inter',
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
@@ -71,7 +71,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: AppSpacing.borderRadiusFull,
           ),
-          textStyle: GoogleFonts.inter(
+          textStyle: const TextStyle(
+            fontFamily: 'Inter',
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -88,7 +89,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: AppSpacing.borderRadiusFull,
           ),
-          textStyle: GoogleFonts.inter(
+          textStyle: const TextStyle(
+            fontFamily: 'Inter',
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -99,7 +101,8 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
-          textStyle: GoogleFonts.inter(
+          textStyle: const TextStyle(
+            fontFamily: 'Inter',
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),

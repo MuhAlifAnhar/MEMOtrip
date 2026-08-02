@@ -116,7 +116,7 @@ class _LoginPageState extends State<LoginPage>
                               curve: Curves.easeOutBack,
                               builder: (_, v, child) => Transform.scale(
                                   scale: 0.5 + 0.5 * v,
-                                  child: Opacity(opacity: v, child: child)),
+                                  child: Opacity(opacity: v.clamp(0.0, 1.0), child: child)),
                               child: Container(
                                 padding: const EdgeInsets.all(AppSpacing.base),
                                 decoration: const BoxDecoration(
@@ -482,7 +482,7 @@ class _RegisterPageState extends State<RegisterPage>
                               curve: Curves.easeOutBack,
                               builder: (_, v, child) => Transform.scale(
                                   scale: 0.5 + 0.5 * v,
-                                  child: Opacity(opacity: v, child: child)),
+                                  child: Opacity(opacity: v.clamp(0.0, 1.0), child: child)),
                               child: Container(
                                 padding: const EdgeInsets.all(AppSpacing.base),
                                 decoration: const BoxDecoration(

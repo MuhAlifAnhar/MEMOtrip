@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
-import '../../../dashboard/data/mock_sensor_data.dart';
+import '../../../../core/services/mock_iot_service.dart';
 
 class OverviewPage extends StatelessWidget {
   const OverviewPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final devices = MockSensorData.deviceStatuses;
+    final devices = MockIoTService.generateDeviceStatuses();
     final online = devices.where((d) => d.isOnline).length;
 
     return SingleChildScrollView(

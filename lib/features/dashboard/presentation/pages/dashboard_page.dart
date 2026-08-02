@@ -1,42 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/services/auth_service.dart';
-import '../../../../core/services/bmkg_weather_service.dart';
 import '../../../../core/services/location_service.dart';
+import '../../../../core/services/mock_iot_service.dart';
 import '../../../../core/utils/date_formatter.dart';
-import '../../../../core/utils/placeholder_images.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/bmkg_weather_card.dart';
 import '../../../../core/widgets/sensor_data_card.dart';
-import '../../data/mock_sensor_data.dart';
+import '../../domain/entities/sensor_reading.dart';
+import '../providers/dashboard_provider.dart';
 
 /// Dashboard Page — Adaptive view (Condition A / B).
 /// PRD: "Beranda (Real-Time Dashboard) — Condition A & B"
-class DashboardPage extends StatefulWidget {
+/// State managed by Riverpod [dashboardProvider].
+class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  ConsumerState<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage>
+class _DashboardPageState extends ConsumerState<DashboardPage>
     with SingleTickerProviderStateMixin {
-  // null = Condition A, non-null = Condition B
-  String? _selectedLocationId;
-
   late final AnimationController _entranceCtrl;
   late final Animation<double> _fadeAnim;
   late final Animation<Offset> _slideAnim;
-
-  // ─── BMKG Weather State ──────────────────────────────────
-  bool _isLoadingWeather = true;
-  BmkgWeather? _currentWeather;
-  List<BmkgHourlyForecast> _hourlyForecasts = [];
-  bool _isUsingRealLocation = false;
-  String? _weatherError;
 
   @override
   void initState() {
@@ -59,54 +51,17 @@ class _DashboardPageState extends State<DashboardPage>
     _entranceCtrl.forward();
 
     // Check location permission after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkLocationPermission());
-
-    // Trigger location + weather fetch on page load
-    _initWeather();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkLocationPermission();
+      // Trigger Geolocator + BMKG fetch via Riverpod
+      ref.read(dashboardProvider.notifier).initWeather();
+    });
   }
 
   @override
   void dispose() {
     _entranceCtrl.dispose();
     super.dispose();
-  }
-
-  /// Initialize weather: request GPS permission → get location → fetch BMKG data.
-  Future<void> _initWeather() async {
-    setState(() {
-      _isLoadingWeather = true;
-      _weatherError = null;
-    });
-
-    try {
-      // Step 1: Get GPS location (this triggers the permission dialog)
-      final position = await LocationService.getCurrentPosition();
-      _isUsingRealLocation = position.isReal;
-
-      // Step 2: Fetch BMKG weather data using coordinates
-      final result = await BmkgWeatherService.fetchWeather(
-        position.lat,
-        position.lng,
-      );
-
-      if (mounted) {
-        setState(() {
-          _currentWeather = result.current;
-          _hourlyForecasts = result.hourly;
-          _isLoadingWeather = false;
-          if (result.current == null) {
-            _weatherError = 'Data cuaca tidak tersedia';
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingWeather = false;
-          _weatherError = 'Gagal memuat data cuaca';
-        });
-      }
-    }
   }
 
   /// Get user's first name from Firebase for personalized greeting.
@@ -210,9 +165,37 @@ class _DashboardPageState extends State<DashboardPage>
 
   @override
   Widget build(BuildContext context) {
+    // ─── Read state from Riverpod ──────────────────────────
+    final state = ref.watch(dashboardProvider);
+    final notifier = ref.read(dashboardProvider.notifier);
+
+    // Determine if the selected location is in EWS danger
+    final selectedSensor = state.selectedLocationId != null
+        ? MockIoTService.getSensorByLocation(
+            state.selectedLocationId!, state.sensorReadings)
+        : null;
+    final isSelectedDanger =
+        selectedSensor != null && MockIoTService.isDanger(selectedSensor.suhu);
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
+      body: Stack(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 500),
+        decoration: BoxDecoration(
+          gradient: isSelectedDanger
+              ? const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFFFFF5F5), // Very light red
+                    Color(0xFFFFEBEE), // Red 50
+                    Color(0xFFFFCDD2), // Red 100
+                  ],
+                  stops: [0.0, 0.5, 1.0],
+                )
+              : AppColors.backgroundGradient,
+        ),
         child: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnim,
@@ -223,7 +206,12 @@ class _DashboardPageState extends State<DashboardPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeader(),
+                  _buildHeader(state, notifier, isSelectedDanger),
+
+                  // ── EWS Banner (only in Condition B when danger) ──
+                  if (state.selectedLocationId != null && isSelectedDanger)
+                    _buildEwsBanner(selectedSensor!),
+
                   const SizedBox(height: AppSpacing.lg),
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 400),
@@ -241,21 +229,108 @@ class _DashboardPageState extends State<DashboardPage>
                         ),
                       );
                     },
-                    child: _selectedLocationId == null
-                        ? _buildConditionA()
-                        : _buildConditionB(),
+                    child: state.selectedLocationId == null
+                        ? _buildConditionA(state, notifier)
+                        : (state.isRefreshingIoT
+                            ? const Padding(
+                                key: ValueKey('iotLoading'),
+                                padding: EdgeInsets.all(AppSpacing.xxl),
+                                child: Center(child: CircularProgressIndicator()),
+                              )
+                            : _buildConditionB(state, notifier)),
                   ),
                 ],
               ),
             ),
+            ),
           ),
         ),
+        ),
+        // ── Simulated Latency Indicator ──
+        if (state.selectedLocationId != null && state.simulatedLatencyMs > 0 && !state.isRefreshingIoT)
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: SafeArea(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: AppSpacing.borderRadiusFull,
+                ),
+                child: Text(
+                  'Data Latency: ${state.simulatedLatencyMs.toStringAsFixed(2)} ms (Simulated via Firebase Mock)',
+                  style: const TextStyle(color: Colors.white, fontSize: 10),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── EWS Danger Banner ────────────────────────────────────
+
+  Widget _buildEwsBanner(SensorReading sensor) {
+    return _AnimatedSection(
+      index: 0,
+      child: Padding(
+        padding: AppSpacing.paddingSection,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.base),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFEF5350), Color(0xFFE53935)],
+            ),
+            borderRadius: AppSpacing.borderRadiusCard,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.error.withOpacity(0.35),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: AppSpacing.borderRadiusMedium,
+                ),
+                child: const Icon(Icons.warning_amber_rounded,
+                    color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '⚠️ Peringatan Dini (EWS)',
+                      style: AppTypography.titleSmall
+                          .copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${sensor.locationName} — Suhu ${sensor.suhu.toStringAsFixed(1)}°C '
+                      'melebihi batas aman ${MockIoTService.ewsTemperatureThreshold.toStringAsFixed(0)}°C!',
+                      style: AppTypography.bodySmall
+                          .copyWith(color: Colors.white.withOpacity(0.9)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(DashboardState state, DashboardNotifier notifier, bool isDanger) {
     return Padding(
       padding: AppSpacing.paddingSection,
       child: Column(
@@ -268,21 +343,21 @@ class _DashboardPageState extends State<DashboardPage>
           const SizedBox(height: AppSpacing.xs),
           Text(_getUserName(), style: AppTypography.displayMedium),
           const SizedBox(height: AppSpacing.base),
-          // Location Toggle
+          // Location Toggle — drives Condition A/B switch
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: AppColors.cardBackground,
               borderRadius: AppSpacing.borderRadiusFull,
               boxShadow: AppColors.cardShadow,
-        border: AppColors.cardBorder,
+              border: AppColors.cardBorder,
             ),
             child: Row(
               children: [
-                _buildToggle('Cuaca Lokal', _selectedLocationId == null,
-                    () => setState(() => _selectedLocationId = null)),
-                _buildToggle('IoT Monitor', _selectedLocationId != null,
-                    () => setState(() => _selectedLocationId = 'losari')),
+                _buildToggle('Cuaca Lokal', state.selectedLocationId == null,
+                    () => notifier.selectLocation(null)),
+                _buildToggle('IoT Monitor', state.selectedLocationId != null,
+                    () => notifier.selectLocation('losari')),
               ],
             ),
           ),
@@ -329,7 +404,7 @@ class _DashboardPageState extends State<DashboardPage>
 
   // ─── Condition A: No destination selected ─────────────
 
-  Widget _buildConditionA() {
+  Widget _buildConditionA(DashboardState state, DashboardNotifier notifier) {
     return Column(
       key: const ValueKey('conditionA'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,134 +417,70 @@ class _DashboardPageState extends State<DashboardPage>
           child: Padding(
             padding: AppSpacing.paddingSection,
             child: BmkgWeatherCard(
-              weather: _currentWeather,
-              hourlyForecasts: _hourlyForecasts,
-              isLoading: _isLoadingWeather,
-              isUsingRealLocation: _isUsingRealLocation,
-              errorMessage: _weatherError,
-              onRefresh: _initWeather,
+              weather: state.currentWeather,
+              hourlyForecasts: state.hourlyForecasts,
+              isLoading: state.isLoadingWeather,
+              isUsingRealLocation: state.isUsingRealLocation,
+              errorMessage: state.weatherError,
+              onRefresh: () => notifier.initWeather(),
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        // Traffic Info
+        const SizedBox(height: AppSpacing.md),
+        // 5-day Forecast & Map Row
         _AnimatedSection(
           index: 1,
           child: Padding(
             padding: AppSpacing.paddingSection,
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.base),
-              decoration: BoxDecoration(
-                color: AppColors.cardBackground,
-                borderRadius: AppSpacing.borderRadiusCard,
-                boxShadow: AppColors.cardShadow,
-        border: AppColors.cardBorder,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.1),
-                      borderRadius: AppSpacing.borderRadiusMedium,
-                    ),
-                    child: const Icon(Icons.traffic_rounded,
-                        color: AppColors.success, size: 24),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(AppStrings.infoLaluLintas,
-                            style: AppTypography.titleSmall),
-                        const SizedBox(height: 2),
-                        Text('Lancar — estimasi 15 mnt ke Losari',
-                            style: AppTypography.bodySmall),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.1),
-                      borderRadius: AppSpacing.borderRadiusFull,
-                    ),
-                    child: Text('Lancar',
-                        style: AppTypography.labelSmall
-                            .copyWith(color: AppColors.success)),
-                  ),
-                ],
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 13,
+                  child: _build5DayForecast(state),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  flex: 10,
+                  child: _buildMapPlaceholder(),
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        // Active Locations
+        const SizedBox(height: AppSpacing.md),
+        // Traffic Info
         _AnimatedSection(
           index: 2,
           child: Padding(
             padding: AppSpacing.paddingSection,
-            child: Text('${AppStrings.lokasiAktif} 🟢',
-                style: AppTypography.headlineSmall),
+            child: _buildTrafficInfo(),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        // Recent Activity
+        _AnimatedSection(
+          index: 3,
+          child: Padding(
+            padding: AppSpacing.paddingSection,
+            child: Row(
+              children: [
+                Text('Recent Activity',
+                    style: AppTypography.headlineLarge
+                        .copyWith(fontWeight: FontWeight.w800)),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
         _AnimatedSection(
-          index: 3,
+          index: 4,
           child: SizedBox(
             height: 130,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              children: MockSensorData.deviceStatuses.map((d) {
-                return _PressableCard(
-                  onTap: () =>
-                      setState(() => _selectedLocationId = d.locationId),
-                  child: Container(
-                    width: 170,
-                    margin: const EdgeInsets.only(right: AppSpacing.md),
-                    padding: const EdgeInsets.all(AppSpacing.base),
-                    decoration: BoxDecoration(
-                      color: AppColors.cardBackground,
-                      borderRadius: AppSpacing.borderRadiusCard,
-                      boxShadow: AppColors.cardShadow,
-                      border: Border.all(
-                          color: d.isOnline
-                              ? AppColors.success.withOpacity(0.3)
-                              : AppColors.error.withOpacity(0.2)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            DeviceStatusIndicator(
-                                isOnline: d.isOnline, label: null),
-                            const Spacer(),
-                            Icon(Icons.sensors_rounded,
-                                size: 18,
-                                color: d.isOnline
-                                    ? AppColors.success
-                                    : AppColors.textHint),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Text(d.locationName,
-                            style: AppTypography.titleSmall,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 4),
-                        Text(
-                            d.isOnline
-                                ? 'Online • ${DateFormatter.relative(d.lastHeartbeat)}'
-                                : 'Offline • ${DateFormatter.relative(d.lastHeartbeat)}',
-                            style: AppTypography.caption),
-                      ],
-                    ),
-                  ),
-                );
+              children: state.deviceStatuses.map((d) {
+                return _buildRecentActivityCard(d, state, notifier);
               }).toList(),
             ),
           ),
@@ -478,17 +489,221 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
+  Widget _build5DayForecast(DashboardState state) {
+    final days = ['WED', 'THR', 'FRI', 'SAT', 'SU'];
+    final icons = ['☀️', '⛅', '🌧️', '☁️', '🌧️'];
+    final temps = ['22°C', '21°C', '20°C', '24°C', '25°C'];
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: const Color(0xFF455A64), // Darker grey-blue
+        borderRadius: AppSpacing.borderRadiusCard,
+        boxShadow: AppColors.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Partly Cloudy',
+                  style: AppTypography.caption.copyWith(color: Colors.white70)),
+              const Icon(Icons.compare_arrows_rounded,
+                  color: Colors.white70, size: 14),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('5-day Forecast',
+              style: AppTypography.labelLarge.copyWith(color: Colors.white)),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(5, (i) {
+              return Column(
+                children: [
+                  Text(days[i],
+                      style: AppTypography.caption
+                          .copyWith(color: Colors.white70, fontSize: 10)),
+                  const SizedBox(height: 4),
+                  Text(icons[i], style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Text(temps[i],
+                      style: AppTypography.labelSmall
+                          .copyWith(color: Colors.white)),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMapPlaceholder() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: AppSpacing.borderRadiusCard,
+        boxShadow: AppColors.cardShadow,
+        image: const DecorationImage(
+          image: NetworkImage(
+              'https://media.wired.com/photos/59269cd37034dc5f91bec0f1/master/w_2240,c_limit/GoogleMapTA.jpg'),
+          fit: BoxFit.cover,
+          colorFilter: ColorFilter.mode(Colors.white54, BlendMode.lighten),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          const SizedBox(height: 60),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Location', style: AppTypography.caption),
+              const Icon(Icons.more_horiz_rounded,
+                  color: AppColors.textHint, size: 14),
+            ],
+          ),
+          Text('New York, USA', style: AppTypography.labelMedium),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrafficInfo() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: AppSpacing.borderRadiusCard,
+        boxShadow: AppColors.cardShadow,
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF5C6BC0),
+                  borderRadius: AppSpacing.borderRadiusSmall,
+                ),
+                child: const Icon(Icons.traffic_rounded,
+                    color: Colors.white, size: 16),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Informasi Lalu Lintas',
+                        style: AppTypography.labelLarge
+                            .copyWith(fontWeight: FontWeight.bold)),
+                    Text('Sumber : Antara News',
+                        style: AppTypography.caption.copyWith(
+                          decoration: TextDecoration.underline,
+                        )),
+                  ],
+                ),
+              ),
+              const Icon(Icons.warning_rounded, color: Colors.red, size: 20),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            'Demo — Jl. Urip Sumoharjo, Jl. AP Pettarani, dan sekitar Flyover.',
+            style:
+                AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentActivityCard(
+      DeviceStatus d, DashboardState state, DashboardNotifier notifier) {
+    return _PressableCard(
+      onTap: () => notifier.selectLocation(d.locationId),
+      child: Container(
+        width: 220,
+        margin: const EdgeInsets.only(right: AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF64B5F6), Color(0xFF1976D2)],
+          ),
+          borderRadius: AppSpacing.borderRadiusCard,
+          boxShadow: AppColors.cardShadow,
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              right: -10,
+              top: 10,
+              child: Text(
+                '⛈️',
+                style: const TextStyle(fontSize: 60),
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Indonesia',
+                        style: AppTypography.caption
+                            .copyWith(color: Colors.white70)),
+                    Text(
+                      d.locationName,
+                      style: AppTypography.titleLarge.copyWith(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Thunder',
+                        style: AppTypography.labelMedium
+                            .copyWith(color: Colors.white70)),
+                    Text('20°C',
+                        style: AppTypography.labelLarge
+                            .copyWith(color: Colors.white)),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ─── Condition B: Destination selected ────────────────
 
-  Widget _buildConditionB() {
-    final sensors = MockSensorData.sensorReadings;
-    final snapshots = MockSensorData.cameraSnapshots;
+  Widget _buildConditionB(DashboardState state, DashboardNotifier notifier) {
+    final sensors = state.sensorReadings;
+    final snapshots = state.cameraSnapshots;
     final selected = sensors.firstWhere(
-        (s) => s.locationId == _selectedLocationId,
+        (s) => s.locationId == state.selectedLocationId,
         orElse: () => sensors.first);
     final snapshot = snapshots.firstWhere(
-        (s) => s.locationId == _selectedLocationId,
+        (s) => s.locationId == state.selectedLocationId,
         orElse: () => snapshots.first);
+
+    final isDanger = MockIoTService.isDanger(selected.suhu);
 
     return Column(
       key: const ValueKey('conditionB'),
@@ -503,10 +718,10 @@ class _DashboardPageState extends State<DashboardPage>
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               children: sensors.map((s) {
-                final isActive = s.locationId == _selectedLocationId;
+                final isActive = s.locationId == state.selectedLocationId;
+                final chipDanger = MockIoTService.isDanger(s.suhu);
                 return GestureDetector(
-                  onTap: () =>
-                      setState(() => _selectedLocationId = s.locationId),
+                  onTap: () => notifier.selectLocation(s.locationId),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeOutCubic,
@@ -515,18 +730,22 @@ class _DashboardPageState extends State<DashboardPage>
                         horizontal: AppSpacing.base, vertical: AppSpacing.sm),
                     decoration: BoxDecoration(
                       color: isActive
-                          ? AppColors.primary
+                          ? (chipDanger ? AppColors.error : AppColors.primary)
                           : AppColors.cardBackground,
                       borderRadius: AppSpacing.borderRadiusFull,
                       boxShadow: isActive
                           ? [
                               BoxShadow(
-                                color: AppColors.primary.withOpacity(0.3),
+                                color: (chipDanger ? AppColors.error : AppColors.primary)
+                                    .withOpacity(0.3),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
                             ]
                           : AppColors.cardShadow,
+                      border: !isActive && chipDanger
+                          ? Border.all(color: AppColors.error.withOpacity(0.5))
+                          : null,
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -537,8 +756,18 @@ class _DashboardPageState extends State<DashboardPage>
                             style: AppTypography.labelMedium.copyWith(
                               color: isActive
                                   ? Colors.white
-                                  : AppColors.textPrimary,
+                                  : chipDanger
+                                      ? AppColors.error
+                                      : AppColors.textPrimary,
                             )),
+                        if (chipDanger) ...[
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            size: 14,
+                            color: isActive ? Colors.white : AppColors.error,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -548,16 +777,61 @@ class _DashboardPageState extends State<DashboardPage>
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
-        // Sensor Readings
+
+        // Refresh Button Row
         _AnimatedSection(
           index: 1,
           child: Padding(
             padding: AppSpacing.paddingSection,
-            child: Text('${AppStrings.dataRealtime} ⚡',
-                style: AppTypography.headlineSmall),
+            child: Row(
+              children: [
+                Text('${AppStrings.dataRealtime} ⚡',
+                    style: AppTypography.headlineSmall),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => notifier.refreshIoTData(),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDanger
+                          ? AppColors.error.withOpacity(0.1)
+                          : AppColors.primarySurface,
+                      borderRadius: AppSpacing.borderRadiusFull,
+                      border: Border.all(
+                        color: isDanger
+                            ? AppColors.error.withOpacity(0.3)
+                            : AppColors.primary.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.refresh_rounded,
+                            size: 16,
+                            color: isDanger
+                                ? AppColors.error
+                                : AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text('Refresh',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: isDanger
+                                  ? AppColors.error
+                                  : AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            )),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
+
+        // Sensor Readings — with EWS danger mode
         _AnimatedSection(
           index: 2,
           child: Padding(
@@ -571,6 +845,7 @@ class _DashboardPageState extends State<DashboardPage>
                     unit: AppStrings.celsius,
                     icon: Icons.thermostat_rounded,
                     iconColor: AppColors.accent,
+                    isDanger: isDanger,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
@@ -598,6 +873,7 @@ class _DashboardPageState extends State<DashboardPage>
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
+
         // Camera Snapshot
         _AnimatedSection(
           index: 3,
@@ -627,7 +903,7 @@ class _DashboardPageState extends State<DashboardPage>
                   ClipRRect(
                     borderRadius: AppSpacing.borderRadiusCard,
                     child: AppNetworkImage(
-                      imageUrl: PlaceholderImages.camera(_selectedLocationId ?? 'losari'),
+                      imageUrl: snapshot.imageUrl,
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -693,20 +969,31 @@ class _DashboardPageState extends State<DashboardPage>
               itemCount: sensors.length,
               itemBuilder: (_, i) {
                 final s = sensors[i];
+                final cmpDanger = MockIoTService.isDanger(s.suhu);
                 return _PressableCard(
-                  onTap: () =>
-                      setState(() => _selectedLocationId = s.locationId),
+                  onTap: () => notifier.selectLocation(s.locationId),
                   child: Container(
                     width: 160,
                     margin: const EdgeInsets.only(right: AppSpacing.md),
                     padding: const EdgeInsets.all(AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: AppColors.cardBackground,
+                      color: cmpDanger
+                          ? AppColors.error.withOpacity(0.06)
+                          : AppColors.cardBackground,
                       borderRadius: AppSpacing.borderRadiusCard,
-                      boxShadow: AppColors.cardShadow,
-                      border: s.locationId == _selectedLocationId
-                          ? Border.all(color: AppColors.primary, width: 1.5)
-                          : AppColors.cardBorder,
+                      boxShadow: cmpDanger
+                          ? [BoxShadow(color: AppColors.error.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 3))]
+                          : AppColors.cardShadow,
+                      border: s.locationId == state.selectedLocationId
+                          ? Border.all(
+                              color: cmpDanger
+                                  ? AppColors.error
+                                  : AppColors.primary,
+                              width: 1.5)
+                          : cmpDanger
+                              ? Border.all(
+                                  color: AppColors.error.withOpacity(0.4))
+                              : AppColors.cardBorder,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -721,12 +1008,17 @@ class _DashboardPageState extends State<DashboardPage>
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis),
                             ),
+                            if (cmpDanger)
+                              const Icon(Icons.warning_amber_rounded,
+                                  size: 14, color: AppColors.error),
                           ],
                         ),
                         const Spacer(),
                         Text('${s.suhu.toStringAsFixed(1)}°C',
-                            style: AppTypography.headlineMedium
-                                .copyWith(color: AppColors.accent)),
+                            style: AppTypography.headlineMedium.copyWith(
+                                color: cmpDanger
+                                    ? AppColors.error
+                                    : AppColors.accent)),
                         Text('💧 ${s.kelembapan.toStringAsFixed(0)}%',
                             style: AppTypography.caption),
                       ],
@@ -736,6 +1028,24 @@ class _DashboardPageState extends State<DashboardPage>
               },
             ),
           ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+
+        // ══════════════════════════════════════════════════════
+        // Community Reviews — hanya muncul di Condition B
+        // ══════════════════════════════════════════════════════
+        _AnimatedSection(
+          index: 7,
+          child: Padding(
+            padding: AppSpacing.paddingSection,
+            child: Text('Review Komunitas 💬',
+                style: AppTypography.headlineSmall),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _AnimatedSection(
+          index: 8,
+          child: _CommunityReviewSection(locationName: selected.locationName),
         ),
       ],
     );
@@ -752,6 +1062,143 @@ class _DashboardPageState extends State<DashboardPage>
       default:
         return AppColors.info;
     }
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+//  Community Review Section — Mock data for Condition B
+// ═════════════════════════════════════════════════════════════
+
+class _MockReview {
+  final String name;
+  final String avatar;
+  final double rating;
+  final String text;
+  final String timeAgo;
+
+  const _MockReview({
+    required this.name,
+    required this.avatar,
+    required this.rating,
+    required this.text,
+    required this.timeAgo,
+  });
+}
+
+class _CommunityReviewSection extends StatelessWidget {
+  final String locationName;
+
+  const _CommunityReviewSection({required this.locationName});
+
+  static const _reviews = [
+    _MockReview(
+      name: 'Andi Pratama',
+      avatar: 'AP',
+      rating: 4.5,
+      text: 'Pemandangan sunset-nya luar biasa! Cocok untuk foto-foto. Suasana cukup ramai di sore hari tapi masih nyaman.',
+      timeAgo: '2 jam lalu',
+    ),
+    _MockReview(
+      name: 'Siti Rahma',
+      avatar: 'SR',
+      rating: 5.0,
+      text: 'Tempat favorit saya untuk jalan sore. Angin sepoi-sepoi dan pemandangan laut yang cantik. Highly recommended! 🌅',
+      timeAgo: '5 jam lalu',
+    ),
+    _MockReview(
+      name: 'Budi Setiawan',
+      avatar: 'BS',
+      rating: 4.0,
+      text: 'Fasilitas sudah bagus, tapi agak panas di siang hari. Sebaiknya datang setelah pukul 4 sore.',
+      timeAgo: '1 hari lalu',
+    ),
+    _MockReview(
+      name: 'Dewi Lestari',
+      avatar: 'DL',
+      rating: 4.8,
+      text: 'Bersih dan tertata rapi. Pedagang lokal juga ramah-ramah. Pisang epe-nya juara! 🍌',
+      timeAgo: '2 hari lalu',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Column(
+        children: _reviews.map((r) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: AppSpacing.md),
+            padding: const EdgeInsets.all(AppSpacing.base),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: AppSpacing.borderRadiusCard,
+              boxShadow: AppColors.cardShadow,
+              border: AppColors.cardBorder,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppColors.primary, AppColors.accent],
+                        ),
+                        borderRadius: AppSpacing.borderRadiusFull,
+                      ),
+                      child: Center(
+                        child: Text(r.avatar,
+                            style: AppTypography.labelSmall
+                                .copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    // Name & time
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(r.name, style: AppTypography.titleSmall),
+                          Text(r.timeAgo, style: AppTypography.caption),
+                        ],
+                      ),
+                    ),
+                    // Rating
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withOpacity(0.1),
+                        borderRadius: AppSpacing.borderRadiusFull,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.star_rounded,
+                              size: 14, color: AppColors.warning),
+                          const SizedBox(width: 2),
+                          Text(r.rating.toStringAsFixed(1),
+                              style: AppTypography.labelSmall.copyWith(
+                                color: AppColors.warning,
+                                fontWeight: FontWeight.w700,
+                              )),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(r.text, style: AppTypography.bodySmall),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 }
 
