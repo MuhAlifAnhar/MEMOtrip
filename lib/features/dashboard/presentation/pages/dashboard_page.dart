@@ -10,6 +10,7 @@ import '../../../../core/services/mock_iot_service.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/bmkg_weather_card.dart';
+import '../../../../core/widgets/custom_gauge.dart';
 import '../../../../core/widgets/sensor_data_card.dart';
 import '../../domain/entities/sensor_reading.dart';
 import '../providers/dashboard_provider.dart';
@@ -703,245 +704,200 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         (s) => s.locationId == state.selectedLocationId,
         orElse: () => snapshots.first);
 
-    final isDanger = MockIoTService.isDanger(selected.suhu);
-
     return Column(
       key: const ValueKey('conditionB'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Selected Location Chips
+        // 1. Location Selection Chips
         _AnimatedSection(
           index: 0,
-          child: SizedBox(
-            height: 44,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              children: sensors.map((s) {
-                final isActive = s.locationId == state.selectedLocationId;
-                final chipDanger = MockIoTService.isDanger(s.suhu);
-                return GestureDetector(
-                  onTap: () => notifier.selectLocation(s.locationId),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    margin: const EdgeInsets.only(right: AppSpacing.sm),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.base, vertical: AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? (chipDanger ? AppColors.error : AppColors.primary)
-                          : AppColors.cardBackground,
-                      borderRadius: AppSpacing.borderRadiusFull,
-                      boxShadow: isActive
-                          ? [
-                              BoxShadow(
-                                color: (chipDanger ? AppColors.error : AppColors.primary)
-                                    .withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : AppColors.cardShadow,
-                      border: !isActive && chipDanger
-                          ? Border.all(color: AppColors.error.withOpacity(0.5))
-                          : null,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        DeviceStatusIndicator(isOnline: s.isOnline),
-                        const SizedBox(width: 6),
-                        Text(s.locationName,
-                            style: AppTypography.labelMedium.copyWith(
-                              color: isActive
-                                  ? Colors.white
-                                  : chipDanger
-                                      ? AppColors.error
-                                      : AppColors.textPrimary,
-                            )),
-                        if (chipDanger) ...[
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.warning_amber_rounded,
-                            size: 14,
-                            color: isActive ? Colors.white : AppColors.error,
+          child: Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.md),
+            child: SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                children: sensors.map((s) {
+                  final isActive = s.locationId == state.selectedLocationId;
+                  return GestureDetector(
+                    onTap: () => notifier.selectLocation(s.locationId),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.only(right: AppSpacing.md),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isActive ? const Color(0xFF2C3E50) : Colors.white,
+                        borderRadius: AppSpacing.borderRadiusFull,
+                        border: Border.all(
+                          color: const Color(0xFF2C3E50),
+                          width: 1.5,
+                        ),
+                        boxShadow: isActive ? AppColors.cardShadow : [],
+                      ),
+                      child: Center(
+                        child: Text(
+                          s.locationName,
+                          style: AppTypography.labelMedium.copyWith(
+                            color: isActive ? Colors.white : const Color(0xFF2C3E50),
+                            fontWeight: FontWeight.w600,
                           ),
-                        ],
-                      ],
+                        ),
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
 
-        // Refresh Button Row
+        // 2. Hero Image Card with Overlapping Label
         _AnimatedSection(
           index: 1,
           child: Padding(
             padding: AppSpacing.paddingSection,
-            child: Row(
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.bottomCenter,
               children: [
-                Text('${AppStrings.dataRealtime} ⚡',
-                    style: AppTypography.headlineSmall),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () => notifier.refreshIoTData(),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isDanger
-                          ? AppColors.error.withOpacity(0.1)
-                          : AppColors.primarySurface,
-                      borderRadius: AppSpacing.borderRadiusFull,
-                      border: Border.all(
-                        color: isDanger
-                            ? AppColors.error.withOpacity(0.3)
-                            : AppColors.primary.withOpacity(0.2),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.refresh_rounded,
-                            size: 16,
-                            color: isDanger
-                                ? AppColors.error
-                                : AppColors.primary),
-                        const SizedBox(width: 4),
-                        Text('Refresh',
-                            style: AppTypography.labelSmall.copyWith(
-                              color: isDanger
-                                  ? AppColors.error
-                                  : AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            )),
-                      ],
-                    ),
+                // Image container
+                Container(
+                  width: double.infinity,
+                  height: 220,
+                  margin: const EdgeInsets.only(bottom: 24), // Space for overlapping label
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(32),
+                    boxShadow: AppColors.cardShadow,
+                    border: Border.all(color: Colors.white, width: 4),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-
-        // Sensor Readings — with EWS danger mode
-        _AnimatedSection(
-          index: 2,
-          child: Padding(
-            padding: AppSpacing.paddingSection,
-            child: Row(
-              children: [
-                Expanded(
-                  child: SensorDataCard(
-                    label: AppStrings.suhu,
-                    value: selected.suhu.toStringAsFixed(1),
-                    unit: AppStrings.celsius,
-                    icon: Icons.thermostat_rounded,
-                    iconColor: AppColors.accent,
-                    isDanger: isDanger,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: SensorDataCard(
-                    label: AppStrings.kelembapan,
-                    value: selected.kelembapan.toStringAsFixed(0),
-                    unit: AppStrings.persen,
-                    icon: Icons.water_drop_rounded,
-                    iconColor: AppColors.info,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: SensorDataCard(
-                    label: AppStrings.tekanan,
-                    value: selected.tekanan.toStringAsFixed(0),
-                    unit: AppStrings.hPa,
-                    icon: Icons.speed_rounded,
-                    iconColor: AppColors.warning,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // Camera Snapshot
-        _AnimatedSection(
-          index: 3,
-          child: Padding(
-            padding: AppSpacing.paddingSection,
-            child: Text(AppStrings.snapshotKeramaian,
-                style: AppTypography.headlineSmall),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _AnimatedSection(
-          index: 4,
-          child: Padding(
-            padding: AppSpacing.paddingSection,
-            child: Container(
-              width: double.infinity,
-              height: 180,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF2C3E50), Color(0xFF3498DB)],
-                ),
-                borderRadius: AppSpacing.borderRadiusCard,
-              ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: AppSpacing.borderRadiusCard,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
                     child: AppNetworkImage(
                       imageUrl: snapshot.imageUrl,
                       fit: BoxFit.cover,
                     ),
                   ),
-                  Container(
+                ),
+                // Overlapping label
+                Positioned(
+                  bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                     decoration: BoxDecoration(
-                      borderRadius: AppSpacing.borderRadiusCard,
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.black.withOpacity(0.2), Colors.black.withOpacity(0.6)],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: AppSpacing.base,
-                    left: AppSpacing.base,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _crowdColor(snapshot.crowdLevel)
-                                .withOpacity(0.2),
-                            borderRadius: AppSpacing.borderRadiusFull,
-                          ),
-                          child: Text('Keramaian: ${snapshot.crowdLevel}',
-                              style: AppTypography.labelSmall
-                                  .copyWith(color: Colors.white)),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(32),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                            '${snapshot.locationName} • ${DateFormatter.relative(snapshot.timestamp)}',
-                            style: AppTypography.caption
-                                .copyWith(color: Colors.white70)),
                       ],
                     ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          selected.locationName,
+                          style: AppTypography.titleLarge.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Makassar, Sulawesi Selatan',
+                          style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+
+        // 3. Current Condition Title
+        _AnimatedSection(
+          index: 2,
+          child: Padding(
+            padding: AppSpacing.paddingSection,
+            child: Text(
+              'Current Condition',
+              style: AppTypography.headlineMedium.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        // 4. Custom Gauges Row
+        _AnimatedSection(
+          index: 3,
+          child: Padding(
+            padding: AppSpacing.paddingSection,
+            child: Row(
+              children: [
+                Expanded(
+                  child: CustomGauge(
+                    label: 'Wind',
+                    value: '9',
+                    unit: 'km/h',
+                    icon: Icons.air_rounded,
+                    percentage: (9.0 / 100).clamp(0.0, 1.0),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: CustomGauge(
+                    label: 'Temperature',
+                    value: selected.suhu.toStringAsFixed(0),
+                    unit: '°C',
+                    icon: Icons.thermostat_rounded,
+                    percentage: (selected.suhu / 50).clamp(0.0, 1.0),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+
+        // 5. Grid View Card (3x2)
+        _AnimatedSection(
+          index: 4,
+          child: Padding(
+            padding: AppSpacing.paddingSection,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl, horizontal: AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: AppColors.cardShadow,
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildGridItem(Icons.water_drop_outlined, 'Chance of Rain', '58%', Colors.blue),
+                      _buildGridItem(Icons.water_rounded, 'Humidity', '${selected.kelembapan.toStringAsFixed(0)}%', Colors.blue),
+                      _buildGridItem(Icons.speed_rounded, 'Pressure', '${selected.tekanan.toStringAsFixed(0)}hPa', Colors.blue),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildGridItem(Icons.groups_rounded, 'Keramaian', snapshot.crowdLevel, Colors.blue),
+                      _buildGridItem(Icons.wb_sunny_outlined, 'Sinar UV', '3', Colors.blue),
+                      _buildBadgeItem(),
+                    ],
                   ),
                 ],
               ),
@@ -949,103 +905,63 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
-        // Comparison Cards
-        _AnimatedSection(
-          index: 5,
-          child: Padding(
-            padding: AppSpacing.paddingSection,
-            child: Text('Perbandingan Lokasi',
-                style: AppTypography.headlineSmall),
-          ),
+      ],
+    );
+  }
+
+  Widget _buildGridItem(IconData icon, String label, String value, Color color) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 28),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+          textAlign: TextAlign.center,
         ),
-        const SizedBox(height: AppSpacing.md),
-        _AnimatedSection(
-          index: 6,
-          child: SizedBox(
-            height: 140,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              itemCount: sensors.length,
-              itemBuilder: (_, i) {
-                final s = sensors[i];
-                final cmpDanger = MockIoTService.isDanger(s.suhu);
-                return _PressableCard(
-                  onTap: () => notifier.selectLocation(s.locationId),
-                  child: Container(
-                    width: 160,
-                    margin: const EdgeInsets.only(right: AppSpacing.md),
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: cmpDanger
-                          ? AppColors.error.withOpacity(0.06)
-                          : AppColors.cardBackground,
-                      borderRadius: AppSpacing.borderRadiusCard,
-                      boxShadow: cmpDanger
-                          ? [BoxShadow(color: AppColors.error.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 3))]
-                          : AppColors.cardShadow,
-                      border: s.locationId == state.selectedLocationId
-                          ? Border.all(
-                              color: cmpDanger
-                                  ? AppColors.error
-                                  : AppColors.primary,
-                              width: 1.5)
-                          : cmpDanger
-                              ? Border.all(
-                                  color: AppColors.error.withOpacity(0.4))
-                              : AppColors.cardBorder,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            DeviceStatusIndicator(isOnline: s.isOnline),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(s.locationName,
-                                  style: AppTypography.labelSmall,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis),
-                            ),
-                            if (cmpDanger)
-                              const Icon(Icons.warning_amber_rounded,
-                                  size: 14, color: AppColors.error),
-                          ],
-                        ),
-                        const Spacer(),
-                        Text('${s.suhu.toStringAsFixed(1)}°C',
-                            style: AppTypography.headlineMedium.copyWith(
-                                color: cmpDanger
-                                    ? AppColors.error
-                                    : AppColors.accent)),
-                        Text('💧 ${s.kelembapan.toStringAsFixed(0)}%',
-                            style: AppTypography.caption),
-                      ],
-                    ),
-                  ),
-                );
-              },
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: AppTypography.labelMedium.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBadgeItem() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 70,
+          height: 70,
+          decoration: const BoxDecoration(
+            color: Color(0xFF3949AB),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x663949AB),
+                blurRadius: 12,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: const Center(
+            child: Text(
+              '🌤️',
+              style: TextStyle(fontSize: 32),
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // ══════════════════════════════════════════════════════
-        // Community Reviews — hanya muncul di Condition B
-        // ══════════════════════════════════════════════════════
-        _AnimatedSection(
-          index: 7,
-          child: Padding(
-            padding: AppSpacing.paddingSection,
-            child: Text('Review Komunitas 💬',
-                style: AppTypography.headlineSmall),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _AnimatedSection(
-          index: 8,
-          child: _CommunityReviewSection(locationName: selected.locationName),
+        const SizedBox(height: 8),
+        Text(
+          'Cuaca Terkini',
+          style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
         ),
       ],
     );

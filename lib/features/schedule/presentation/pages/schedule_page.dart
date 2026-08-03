@@ -7,6 +7,8 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/page_transitions.dart';
+import '../../../../core/utils/placeholder_images.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../data/mock_schedule_data.dart';
 import '../../domain/entities/schedule.dart';
 import 'schedule_detail_page.dart';
@@ -110,34 +112,144 @@ class _SchedulePageState extends State<SchedulePage>
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: AppSpacing.bottomSafeArea),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const SizedBox(height: AppSpacing.base),
-        Padding(
-            padding: AppSpacing.paddingSection,
-            child: Text('Jadwal Perjalanan 📅',
-                style: AppTypography.displayMedium)),
         const SizedBox(height: AppSpacing.lg),
-        ...grouped.entries.map((e) {
-          return Column(
+
+        // ═══════════════════════════════════════════════════════
+        // 1. HERO HEADER — Illustration + CTA
+        // ═══════════════════════════════════════════════════════
+        _buildStaggered(
+          index: globalIndex++,
+          child: Padding(
+            padding: AppSpacing.paddingSection,
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildStaggered(
-                  index: globalIndex++,
-                  child: Padding(
-                      padding: AppSpacing.paddingSection,
-                      child: Text(e.key,
-                          style: AppTypography.labelMedium.copyWith(
-                              color: e.key == 'Hari Ini'
-                                  ? AppColors.primary
-                                  : AppColors.textSecondary,
-                              fontWeight: FontWeight.w700))),
+                Text(
+                  'Ayo Rencanakan\nPerjalananmu\nSelanjutnya !!',
+                  style: AppTypography.displayMedium.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.3,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                ...e.value.map((s) => _buildStaggered(
-                      index: globalIndex++,
-                      child: _card(s),
-                    )),
                 const SizedBox(height: AppSpacing.lg),
-              ]);
+                // Illustration row + CTA button
+                Row(
+                  children: [
+                    // Travel illustration emojis
+                    const Text('🗺️📅🧳🏖️🌴', style: TextStyle(fontSize: 28)),
+                    const Spacer(),
+                    // Tambah Jadwal button
+                    GestureDetector(
+                      onTap: () {},
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: AppSpacing.borderRadiusFull,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.35),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Tambah Jadwal',
+                              style: AppTypography.labelMedium.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.25),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+
+        // ═══════════════════════════════════════════════════════
+        // 2. JADWAL KAMU ! Title
+        // ═══════════════════════════════════════════════════════
+        _buildStaggered(
+          index: globalIndex++,
+          child: Padding(
+            padding: AppSpacing.paddingSection,
+            child: Text(
+              'Jadwal Kamu !',
+              style: AppTypography.headlineLarge.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        // ═══════════════════════════════════════════════════════
+        // 3. GROUPED SCHEDULE CARDS
+        // ═══════════════════════════════════════════════════════
+        ...grouped.entries.map((e) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Day label with dot indicator
+              _buildStaggered(
+                index: globalIndex++,
+                child: Padding(
+                  padding: AppSpacing.paddingSection,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: e.key == 'Hari Ini'
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        e.key,
+                        style: AppTypography.titleMedium.copyWith(
+                          color: e.key == 'Hari Ini'
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              ...e.value.map((s) => _buildStaggered(
+                    index: globalIndex++,
+                    child: _card(s),
+                  )),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          );
         }),
       ]),
     );
@@ -161,60 +273,184 @@ class _SchedulePageState extends State<SchedulePage>
   // ── Card Widget ────────────────────────────────────────
 
   Widget _card(Schedule s) {
-    return _PressableCard(
-      onTap: () => Navigator.push(
-        context,
-        PageTransitions.slideUp(page: ScheduleDetailPage(schedule: s)),
-      ),
-      child: Container(
-        margin: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
-        padding: const EdgeInsets.all(AppSpacing.base),
-        decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            borderRadius: AppSpacing.borderRadiusCard,
-            boxShadow: AppColors.cardShadow,
-            border: AppColors.cardBorder),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(child: Text(s.title, style: AppTypography.titleMedium)),
-            Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                    color: AppColors.primarySurface,
-                    borderRadius: AppSpacing.borderRadiusFull),
-                child: Text('${s.totalPlaces} tempat',
-                    style: AppTypography.labelSmall
-                        .copyWith(color: AppColors.primary))),
-            const SizedBox(width: 4),
-            // ── Popup Menu (Edit / Delete / Share) ──
-            _SchedulePopupMenu(
-              onEdit: () => _showEditDialog(s),
-              onDelete: () => _showDeleteDialog(s),
-              onShare: () => _showShareSheet(s),
+    // Get the first item image URL if available
+    final firstItem = s.items.isNotEmpty ? s.items.first : null;
+    final imageUrl = firstItem?.destinationImageUrl ??
+        PlaceholderImages.destination(s.id, w: 200, h: 200);
+    final firstNote = s.items.isNotEmpty ? s.items.first.notes : null;
+    final firstTime = firstItem != null
+        ? DateFormatter.timeWita(firstItem.dateTime)
+        : '';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Main Card ──
+          _PressableCard(
+            onTap: () => Navigator.push(
+              context,
+              PageTransitions.slideUp(page: ScheduleDetailPage(schedule: s)),
             ),
-          ]),
-          const SizedBox(height: 8),
-          ...s.items.take(2).map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(children: [
-                const Icon(Icons.location_on_outlined,
-                    size: 12, color: AppColors.textHint),
-                const SizedBox(width: 4),
-                Expanded(
-                    child: Text(item.destinationName,
-                        style: AppTypography.caption,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis)),
-                Text(DateFormatter.time24(item.dateTime),
-                    style: AppTypography.caption),
-              ]))),
-          if (s.items.length > 2)
-            Text('+${s.items.length - 2} lagi',
-                style:
-                    AppTypography.caption.copyWith(color: AppColors.primary)),
-        ]),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: AppColors.cardShadow,
+                border: AppColors.cardBorder,
+              ),
+              child: Row(
+                children: [
+                  // Left side: Edit button + info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title
+                        Text(
+                          s.title,
+                          style: AppTypography.titleMedium.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        // Location count + time
+                        Row(
+                          children: [
+                            Icon(Icons.location_on_outlined,
+                                size: 14, color: AppColors.primary),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${s.totalPlaces} Tempat',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            if (firstTime.isNotEmpty) ...[
+                              const SizedBox(width: 10),
+                              Icon(Icons.access_time_rounded,
+                                  size: 14, color: AppColors.primary),
+                              const SizedBox(width: 4),
+                              Text(
+                                firstTime,
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Right side: Thumbnail image
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: AppNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Action Buttons Bar ──
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 8, right: 8),
+            child: Row(
+              children: [
+                // Edit button (blue pill)
+                _ActionChip(
+                  icon: Icons.edit_rounded,
+                  label: 'Edit',
+                  color: AppColors.primary,
+                  onTap: () => _showEditDialog(s),
+                ),
+                const SizedBox(width: 8),
+                _ActionChip(
+                  icon: Icons.delete_outline_rounded,
+                  label: 'Hapus',
+                  color: AppColors.error,
+                  onTap: () => _showDeleteDialog(s),
+                ),
+                const SizedBox(width: 8),
+                _ActionChip(
+                  icon: Icons.share_outlined,
+                  label: 'Bagikan',
+                  color: AppColors.info,
+                  onTap: () => _showShareSheet(s),
+                ),
+                const Spacer(),
+                // WITA badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySurface,
+                    borderRadius: AppSpacing.borderRadiusFull,
+                  ),
+                  child: Text(
+                    'WITA',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Notes Bubble ──
+          if (firstNote != null && firstNote.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, left: 4, right: 4),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.divider,
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
+                  '"$firstNote"',
+                  style: AppTypography.bodySmall.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: AppColors.textSecondary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
       ),
     );
   }
@@ -620,67 +856,45 @@ class _SchedulePageState extends State<SchedulePage>
 // ── Supporting Widgets ───────────────────────────────────
 // ══════════════════════════════════════════════════════════
 
-/// Popup menu for schedule card actions (Edit, Delete, Share).
-class _SchedulePopupMenu extends StatelessWidget {
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-  final VoidCallback onShare;
+/// Action chip for Edit/Hapus/Bagikan below the card.
+class _ActionChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
 
-  const _SchedulePopupMenu({
-    required this.onEdit,
-    required this.onDelete,
-    required this.onShare,
+  const _ActionChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert_rounded,
-          size: 20, color: AppColors.textSecondary),
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
-      shape: RoundedRectangleBorder(
-        borderRadius: AppSpacing.borderRadiusMedium,
-      ),
-      elevation: 8,
-      color: AppColors.surface,
-      onSelected: (value) {
-        switch (value) {
-          case 'edit':
-            onEdit();
-            break;
-          case 'delete':
-            onDelete();
-            break;
-          case 'share':
-            onShare();
-            break;
-        }
-      },
-      itemBuilder: (_) => [
-        _menuItem('edit', Icons.edit_rounded, AppStrings.editJadwal,
-            AppColors.primary),
-        _menuItem('share', Icons.share_rounded, AppStrings.bagikan,
-            AppColors.info),
-        const PopupMenuDivider(height: 1),
-        _menuItem('delete', Icons.delete_rounded, AppStrings.hapusJadwal,
-            AppColors.error),
-      ],
-    );
-  }
-
-  PopupMenuItem<String> _menuItem(
-      String value, IconData icon, String label, Color color) {
-    return PopupMenuItem<String>(
-      value: value,
-      height: 44,
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 10),
-          Text(label,
-              style: AppTypography.labelMedium.copyWith(color: color)),
-        ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: AppSpacing.borderRadiusFull,
+          border: Border.all(color: color.withOpacity(0.2), width: 0.8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: AppTypography.labelSmall.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
