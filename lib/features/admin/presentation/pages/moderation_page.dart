@@ -7,79 +7,25 @@ import '../../../destination/domain/entities/review.dart';
 
 /// Admin Moderation Page — Community content moderation.
 /// PRD: "Validasi Review Pengguna, Penanganan Report, Komentar Terverifikasi Admin"
-class ModerationPage extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:memotrip/features/destination/presentation/providers/destination_provider.dart';
+import '../../../destination/domain/entities/report_item.dart';
+
+class ModerationPage extends ConsumerStatefulWidget {
   const ModerationPage({super.key});
 
   @override
-  State<ModerationPage> createState() => _ModerationPageState();
+  ConsumerState<ModerationPage> createState() => _ModerationPageState();
 }
 
-class _ModerationPageState extends State<ModerationPage>
+class _ModerationPageState extends ConsumerState<ModerationPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late List<Review> _pendingReviews;
-  late List<Review> _approvedReviews;
-  late List<_ReportItem> _reports;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-
-    // Seed mock data
-    final allReviews = MockDestinationData.reviews;
-    _pendingReviews = [
-      Review(
-        id: 'rp1',
-        userId: 'u10',
-        userName: 'Irfan Hidayat',
-        destinationId: 'losari',
-        comment:
-            'Tempatnya sangat indah! Sayangnya sampah masih berserakan di beberapa titik.',
-        rating: 3.5,
-        timestamp: DateTime.now().subtract(const Duration(hours: 1)),
-        status: ReviewStatus.pending,
-      ),
-      Review(
-        id: 'rp2',
-        userId: 'u11',
-        userName: 'Nurul Aini',
-        destinationId: 'kubah99',
-        comment: 'Masjidnya megah sekali, masyaAllah. Sangat recommended!',
-        rating: 5.0,
-        timestamp: DateTime.now().subtract(const Duration(hours: 3)),
-        status: ReviewStatus.pending,
-      ),
-      Review(
-        id: 'rp3',
-        userId: 'u12',
-        userName: 'Dimas Pratama',
-        destinationId: 'cpi',
-        comment: 'Bagus sih tapi tiket masuknya lumayan mahal.',
-        rating: 3.0,
-        timestamp: DateTime.now().subtract(const Duration(hours: 5)),
-        status: ReviewStatus.pending,
-      ),
-    ];
-    _approvedReviews = allReviews
-        .where((r) => r.status == ReviewStatus.approved)
-        .toList();
-    _reports = [
-      _ReportItem(
-        id: 'rep1',
-        reporterName: 'Andi Pratama',
-        targetReviewId: 'r1',
-        reason: 'Konten mengandung spam/iklan',
-        timestamp: DateTime.now().subtract(const Duration(days: 1)),
-      ),
-      _ReportItem(
-        id: 'rep2',
-        reporterName: 'Sari Dewi',
-        targetReviewId: 'r4',
-        reason: 'Komentar tidak sopan',
-        timestamp: DateTime.now().subtract(const Duration(hours: 6)),
-      ),
-    ];
   }
 
   @override
@@ -90,80 +36,97 @@ class _ModerationPageState extends State<ModerationPage>
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Moderasi Konten', style: AppTypography.displaySmall),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Validasi review pengguna dan tangani laporan konten',
-            style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.xl),
+    final allReviews = ref.watch(reviewsProvider);
+    final pendingReviews = allReviews.where((r) => r.status == ReviewStatus.pending).toList();
+    final approvedReviews = allReviews.where((r) => r.status == ReviewStatus.approved).toList();
+    final reports = ref.watch(reportsProvider);
 
-          // Stats
-          Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 600;
+
+        return Padding(
+          padding: EdgeInsets.all(isNarrow ? AppSpacing.base : AppSpacing.xxl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildStatChip(
-                  Icons.pending_actions_rounded,
-                  '${_pendingReviews.length} Menunggu',
-                  AppColors.warning),
-              const SizedBox(width: AppSpacing.md),
-              _buildStatChip(
-                  Icons.check_circle_rounded,
-                  '${_approvedReviews.length} Disetujui',
-                  AppColors.success),
-              const SizedBox(width: AppSpacing.md),
-              _buildStatChip(
-                  Icons.flag_rounded,
-                  '${_reports.length} Laporan',
-                  AppColors.error),
+              Text('Moderasi Konten',
+                  style: isNarrow
+                      ? AppTypography.headlineLarge
+                      : AppTypography.displaySmall),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Validasi review pengguna dan tangani laporan konten',
+                style: AppTypography.bodyMedium
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+
+              // Stats
+              Wrap(
+                spacing: AppSpacing.md,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  _buildStatChip(
+                      Icons.pending_actions_rounded,
+                      '${pendingReviews.length} Menunggu',
+                      AppColors.warning),
+                  _buildStatChip(
+                      Icons.check_circle_rounded,
+                      '${approvedReviews.length} Disetujui',
+                      AppColors.success),
+                  _buildStatChip(
+                      Icons.flag_rounded,
+                      '${reports.length} Laporan',
+                      AppColors.error),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
+
+              // Tabs
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: AppSpacing.borderRadiusCard,
+                  boxShadow: AppColors.cardShadow,
+                  border: AppColors.cardBorder,
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  indicatorColor: AppColors.primary,
+                  indicatorWeight: 3,
+                  labelStyle: isNarrow
+                      ? AppTypography.labelSmall
+                      : AppTypography.labelLarge,
+                  isScrollable: isNarrow,
+                  tabs: [
+                    Tab(
+                        text:
+                            'Menunggu (${pendingReviews.length})'),
+                    Tab(text: 'Disetujui (${approvedReviews.length})'),
+                    Tab(text: 'Laporan (${reports.length})'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.base),
+
+              // Tab Content
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildPendingTab(pendingReviews),
+                    _buildApprovedTab(approvedReviews),
+                    _buildReportsTab(reports),
+                  ],
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: AppSpacing.xl),
-
-          // Tabs
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: AppSpacing.borderRadiusCard,
-              boxShadow: AppColors.cardShadow,
-        border: AppColors.cardBorder,
-            ),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.textSecondary,
-              indicatorColor: AppColors.primary,
-              indicatorWeight: 3,
-              labelStyle: AppTypography.labelLarge,
-              tabs: [
-                Tab(
-                    text:
-                        'Menunggu Validasi (${_pendingReviews.length})'),
-                Tab(text: 'Disetujui (${_approvedReviews.length})'),
-                Tab(text: 'Laporan (${_reports.length})'),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.base),
-
-          // Tab Content
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildPendingTab(),
-                _buildApprovedTab(),
-                _buildReportsTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -190,42 +153,42 @@ class _ModerationPageState extends State<ModerationPage>
 
   // ─── Pending Tab ──────────────────────────────────────
 
-  Widget _buildPendingTab() {
-    if (_pendingReviews.isEmpty) {
+  Widget _buildPendingTab(List<Review> pendingReviews) {
+    if (pendingReviews.isEmpty) {
       return _buildEmptyState(
           Icons.check_circle_outline_rounded, 'Semua review sudah divalidasi!');
     }
     return ListView.builder(
-      itemCount: _pendingReviews.length,
-      itemBuilder: (_, i) => _buildReviewCard(_pendingReviews[i],
+      itemCount: pendingReviews.length,
+      itemBuilder: (_, i) => _buildReviewCard(pendingReviews[i],
           isPending: true),
     );
   }
 
   // ─── Approved Tab ─────────────────────────────────────
 
-  Widget _buildApprovedTab() {
-    if (_approvedReviews.isEmpty) {
+  Widget _buildApprovedTab(List<Review> approvedReviews) {
+    if (approvedReviews.isEmpty) {
       return _buildEmptyState(
           Icons.rate_review_outlined, 'Belum ada review disetujui');
     }
     return ListView.builder(
-      itemCount: _approvedReviews.length,
+      itemCount: approvedReviews.length,
       itemBuilder: (_, i) =>
-          _buildReviewCard(_approvedReviews[i], isPending: false),
+          _buildReviewCard(approvedReviews[i], isPending: false),
     );
   }
 
   // ─── Reports Tab ──────────────────────────────────────
 
-  Widget _buildReportsTab() {
-    if (_reports.isEmpty) {
+  Widget _buildReportsTab(List<ReportItem> reports) {
+    if (reports.isEmpty) {
       return _buildEmptyState(
           Icons.flag_outlined, 'Tidak ada laporan konten');
     }
     return ListView.builder(
-      itemCount: _reports.length,
-      itemBuilder: (_, i) => _buildReportCard(_reports[i]),
+      itemCount: reports.length,
+      itemBuilder: (_, i) => _buildReportCard(reports[i]),
     );
   }
 
@@ -336,7 +299,7 @@ class _ModerationPageState extends State<ModerationPage>
     );
   }
 
-  Widget _buildReportCard(_ReportItem report) {
+  Widget _buildReportCard(ReportItem report) {
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -422,11 +385,7 @@ class _ModerationPageState extends State<ModerationPage>
   }
 
   void _approveReview(Review r) {
-    setState(() {
-      _pendingReviews.remove(r);
-      _approvedReviews.insert(
-          0, r.copyWith(status: ReviewStatus.approved));
-    });
+    ref.read(reviewsProvider.notifier).approveReview(r.id);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('Review dari ${r.userName} disetujui'),
       backgroundColor: AppColors.success,
@@ -435,7 +394,7 @@ class _ModerationPageState extends State<ModerationPage>
   }
 
   void _rejectReview(Review r) {
-    setState(() => _pendingReviews.remove(r));
+    ref.read(reviewsProvider.notifier).rejectReview(r.id);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('Review dari ${r.userName} ditolak'),
       backgroundColor: AppColors.error,
@@ -443,37 +402,21 @@ class _ModerationPageState extends State<ModerationPage>
     ));
   }
 
-  void _dismissReport(_ReportItem report) {
-    setState(() => _reports.remove(report));
+  void _dismissReport(ReportItem report) {
+    ref.read(reportsProvider.notifier).dismissReport(report.id);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('Laporan diabaikan'),
       behavior: SnackBarBehavior.floating,
     ));
   }
 
-  void _removeReportedContent(_ReportItem report) {
-    setState(() => _reports.remove(report));
+  void _removeReportedContent(ReportItem report) {
+    ref.read(reportsProvider.notifier).deleteReport(report.id);
+    ref.read(reviewsProvider.notifier).deleteReview(report.targetReviewId);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: const Text('Konten dilaporkan telah dihapus'),
       backgroundColor: AppColors.error,
       behavior: SnackBarBehavior.floating,
     ));
   }
-}
-
-/// Internal report item model.
-class _ReportItem {
-  final String id;
-  final String reporterName;
-  final String targetReviewId;
-  final String reason;
-  final DateTime timestamp;
-
-  const _ReportItem({
-    required this.id,
-    required this.reporterName,
-    required this.targetReviewId,
-    required this.reason,
-    required this.timestamp,
-  });
 }

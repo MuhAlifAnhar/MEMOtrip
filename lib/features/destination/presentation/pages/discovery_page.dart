@@ -15,19 +15,22 @@ import '../../data/mock_destination_data.dart';
 import '../../domain/entities/destination.dart';
 import 'destination_detail_page.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/destination_provider.dart';
+
 /// Discovery Page — Destination browsing with search, categories & recommendations.
-class DiscoveryPage extends StatefulWidget {
+class DiscoveryPage extends ConsumerStatefulWidget {
   const DiscoveryPage({super.key});
 
   @override
-  State<DiscoveryPage> createState() => _DiscoveryPageState();
+  ConsumerState<DiscoveryPage> createState() => _DiscoveryPageState();
 }
 
-class _DiscoveryPageState extends State<DiscoveryPage>
+class _DiscoveryPageState extends ConsumerState<DiscoveryPage>
     with SingleTickerProviderStateMixin {
   String _searchQuery = '';
   String _selectedCategory = 'all';
-  final List<Destination> _destinations = MockDestinationData.destinations;
+  late List<Destination> _destinations;
 
   // Carousel
   late final PageController _carouselController;
@@ -147,6 +150,8 @@ class _DiscoveryPageState extends State<DiscoveryPage>
 
   @override
   Widget build(BuildContext context) {
+    _destinations = ref.watch(destinationsProvider);
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),

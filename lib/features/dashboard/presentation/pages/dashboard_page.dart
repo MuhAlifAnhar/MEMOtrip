@@ -14,6 +14,8 @@ import '../../../../core/widgets/custom_gauge.dart';
 import '../../../../core/widgets/sensor_data_card.dart';
 import '../../domain/entities/sensor_reading.dart';
 import '../providers/dashboard_provider.dart';
+import '../../../../core/widgets/community_review_card.dart';
+import '../../../destination/presentation/providers/destination_provider.dart';
 
 /// Dashboard Page — Adaptive view (Condition A / B).
 /// PRD: "Beranda (Real-Time Dashboard) — Condition A & B"
@@ -703,7 +705,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
     final snapshot = snapshots.firstWhere(
         (s) => s.locationId == state.selectedLocationId,
         orElse: () => snapshots.first);
-
+    final reviews = ref
+        .watch(reviewsProvider)
+        .where((r) =>
+            r.destinationId == state.selectedLocationId &&
+            r.status == ReviewStatus.approved)
+        .toList();
     return Column(
       key: const ValueKey('conditionB'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -901,6 +908,85 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                   ),
                 ],
               ),
+            ),
+          ),
+        ),
+        // 6. Community Reviews Section
+        _AnimatedSection(
+          index: 5,
+          child: Padding(
+            padding: AppSpacing.paddingSection,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Ulasan Komunitas 💬',
+                        style: AppTypography.headlineSmall),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: AppSpacing.borderRadiusFull,
+                      ),
+                      child: Text(
+                        '${reviews.length} Ulasan',
+                        style: AppTypography.labelSmall
+                            .copyWith(color: AppColors.primary),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                if (reviews.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: AppColors.cardShadow,
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(Icons.rate_review_outlined,
+                            size: 32,
+                            color: AppColors.textHint.withOpacity(0.5)),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Belum ada ulasan untuk lokasi ini.',
+                          style: AppTypography.bodySmall,
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: 160,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: reviews.length,
+                      itemBuilder: (_, i) {
+                        final r = reviews[i];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: SizedBox(
+                            width: 280,
+                            child: CommunityReviewCard(
+                              userName: r.userName,
+                              comment: r.comment,
+                              rating: r.rating,
+                              date: r.timestamp,
+                              isOfficial: r.isOfficial,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

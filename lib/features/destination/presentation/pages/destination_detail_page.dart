@@ -15,22 +15,29 @@ import '../../../../core/services/mock_iot_service.dart';
 import '../../data/mock_destination_data.dart';
 import '../../domain/entities/destination.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/destination_provider.dart';
+import '../../domain/entities/review.dart';
+
 /// Destination Detail Page — Deep dive view with sensor data, facilities, reviews.
-class DestinationDetailPage extends StatefulWidget {
+class DestinationDetailPage extends ConsumerStatefulWidget {
   final Destination destination;
 
   const DestinationDetailPage({super.key, required this.destination});
 
   @override
-  State<DestinationDetailPage> createState() => _DestinationDetailPageState();
+  ConsumerState<DestinationDetailPage> createState() => _DestinationDetailPageState();
 }
 
-class _DestinationDetailPageState extends State<DestinationDetailPage>
+class _DestinationDetailPageState extends ConsumerState<DestinationDetailPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _entranceCtrl;
   late final Animation<double> _fadeAnim;
 
-  Destination get destination => widget.destination;
+  Destination get destination => ref.watch(destinationsProvider).firstWhere(
+        (d) => d.id == widget.destination.id,
+        orElse: () => widget.destination,
+      );
 
   @override
   void initState() {
@@ -55,7 +62,12 @@ class _DestinationDetailPageState extends State<DestinationDetailPage>
     final snapshots = MockIoTService.generateCameraSnapshots();
     final sensor = MockIoTService.getSensorByLocation(destination.hardwareId ?? '', sensors);
     final snapshot = MockIoTService.getSnapshotByLocation(destination.hardwareId ?? '', snapshots);
-    final reviews = MockDestinationData.getReviewsForDestination(destination.id);
+    final reviews = ref
+        .watch(reviewsProvider)
+        .where((r) =>
+            r.destinationId == destination.id &&
+            r.status == ReviewStatus.approved)
+        .toList();
     final dist = DistanceCalculator.haversine(
         LocationService.defaultLat, LocationService.defaultLng,
         destination.latitude, destination.longitude);
@@ -93,17 +105,39 @@ class _DestinationDetailPageState extends State<DestinationDetailPage>
                 ),
                 child: const Icon(Icons.share_rounded, color: Colors.white, size: 20),
               ),
-              Container(
-                margin: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  destination.isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-                  color: destination.isBookmarked ? AppColors.starFilled : Colors.white,
-                  size: 20,
+              GestureDetector(
+                onTap: () {
+                  ref
+                      .read(destinationsProvider.notifier)
+                      .toggleBookmark(destination.id);
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(destination.isBookmarked
+                          ? 'Dihapus dari bookmark'
+                          : 'Ditambahkan ke bookmark'),
+                      backgroundColor: AppColors.textPrimary,
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    destination.isBookmarked
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_border_rounded,
+                    color: destination.isBookmarked
+                        ? AppColors.starFilled
+                        : Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -556,14 +590,56 @@ class _DestinationDetailPageState extends State<DestinationDetailPage>
                     ],
 
                     // Community Reviews
-                    if (reviews.isNotEmpty) ...[
-                      _StaggerSection(
-                        index: sensor != null ? 8 : 6,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('${AppStrings.ulasan} 💬', style: AppTypography.headlineSmall),
-                            const SizedBox(height: AppSpacing.md),
+                    _StaggerSection(
+                      index: sensor != null ? 8 : 6,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('${AppStrings.ulasan} 💬',
+                                  style: AppTypography.headlineSmall),
+                              OutlinedButton.icon(
+                                onPressed: () => _showWriteReviewDialog(context),
+                                icon: const Icon(Icons.rate_review_rounded, size: 16),
+                                label: const Text('Tulis Ulasan'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  side: BorderSide(color: AppColors.primary.withOpacity(0.5)),
+                                  foregroundColor: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          if (reviews.isEmpty)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(AppSpacing.xl),
+                              decoration: BoxDecoration(
+                                color: AppColors.cardBackground,
+                                borderRadius: AppSpacing.borderRadiusCard,
+                                border: AppColors.cardBorder,
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.rate_review_outlined,
+                                      size: 32,
+                                      color: AppColors.textHint.withOpacity(0.5)),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Belum ada ulasan terverifikasi.',
+                                    style: AppTypography.bodySmall,
+                                  ),
+                                  Text(
+                                    'Jadilah yang pertama menulis ulasan!',
+                                    style: AppTypography.caption,
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
                             SizedBox(
                               height: 180,
                               child: ListView.builder(
@@ -573,9 +649,11 @@ class _DestinationDetailPageState extends State<DestinationDetailPage>
                                   final r = reviews[i];
                                   return TweenAnimationBuilder<double>(
                                     tween: Tween(begin: 0.0, end: 1.0),
-                                    duration: Duration(milliseconds: 400 + (i * 100)),
+                                    duration: Duration(
+                                        milliseconds: 400 + (i * 100)),
                                     curve: Curves.easeOutCubic,
-                                    builder: (_, v, child) => Transform.translate(
+                                    builder: (_, v, child) =>
+                                        Transform.translate(
                                       offset: Offset(30 * (1 - v), 0),
                                       child: Opacity(opacity: v, child: child),
                                     ),
@@ -590,10 +668,9 @@ class _DestinationDetailPageState extends State<DestinationDetailPage>
                                 },
                               ),
                             ),
-                          ],
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
 
                     const SizedBox(height: AppSpacing.bottomSafeArea),
                   ],
@@ -685,6 +762,144 @@ class _DestinationDetailPageState extends State<DestinationDetailPage>
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+  void _showWriteReviewDialog(BuildContext context) {
+    final commentCtrl = TextEditingController();
+    double rating = 4.0;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Container(
+          padding: EdgeInsets.only(
+            top: AppSpacing.xl,
+            left: AppSpacing.xl,
+            right: AppSpacing.xl,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
+          ),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(
+                top: Radius.circular(AppSpacing.radiusLarge)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: AppSpacing.borderRadiusFull,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Tulis Ulasan ✍️', style: AppTypography.headlineMedium),
+              const SizedBox(height: AppSpacing.xl),
+
+              // Rating Selection
+              Text('Rating Anda', style: AppTypography.labelLarge),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: List.generate(5, (index) {
+                  final score = index + 1.0;
+                  final isFilled = rating >= score;
+                  return IconButton(
+                    icon: Icon(
+                      isFilled ? Icons.star_rounded : Icons.star_border_rounded,
+                      color: isFilled ? AppColors.starFilled : AppColors.starEmpty,
+                      size: 32,
+                    ),
+                    onPressed: () {
+                      setDialogState(() => rating = score);
+                    },
+                  );
+                }),
+              ),
+              const SizedBox(height: AppSpacing.base),
+
+              // Comment Field
+              Text('Komentar', style: AppTypography.labelLarge),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: commentCtrl,
+                maxLines: 3,
+                style: AppTypography.bodyMedium,
+                decoration: InputDecoration(
+                  hintText: 'Tulis komentar/ulasan Anda tentang tempat ini...',
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: AppSpacing.borderRadiusMedium,
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+
+              // Actions
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Batal'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final comment = commentCtrl.text.trim();
+                        if (comment.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Komentar tidak boleh kosong'),
+                              backgroundColor: AppColors.warning,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          return;
+                        }
+
+                        final newReview = Review(
+                          id: 'r-${DateTime.now().millisecondsSinceEpoch}',
+                          userId: 'user',
+                          userName: 'Andi Mappanyukki', // Mock logged in user name
+                          destinationId: destination.id,
+                          comment: comment,
+                          rating: rating,
+                          timestamp: DateTime.now(),
+                          status: ReviewStatus.pending, // Goes to admin moderation first
+                        );
+
+                        ref.read(reviewsProvider.notifier).addReview(newReview);
+                        Navigator.pop(ctx);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Ulasan berhasil diajukan! Menunggu persetujuan admin.'),
+                            backgroundColor: AppColors.success,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      child: const Text('Kirim'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

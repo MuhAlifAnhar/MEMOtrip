@@ -14,14 +14,17 @@ import '../../../profile/presentation/pages/settings_page.dart';
 import '../../../destination/data/mock_destination_data.dart';
 import '../../data/mock_visit_data.dart';
 
-class ProfilePage extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../destination/presentation/providers/destination_provider.dart';
+
+class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  ConsumerState<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage>
+class _ProfilePageState extends ConsumerState<ProfilePage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _entranceCtrl;
   late final Animation<double> _fadeAnim;
@@ -135,7 +138,7 @@ class _ProfilePageState extends State<ProfilePage>
                                     width: 1,
                                     height: 40,
                                     color: Colors.white24),
-                                _stat('${MockDestinationData.destinations.where((d) => d.isBookmarked).length}', 'Bookmark'),
+                                _stat('${ref.watch(destinationsProvider).where((d) => d.isBookmarked).length}', 'Bookmark'),
                               ]),
                         ),
                       ),

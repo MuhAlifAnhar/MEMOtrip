@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../providers/analytics_provider.dart';
 
 /// Admin Analytics & Push Notification page.
 /// PRD: "Trending Tracker, Manual Push Notification Sender"
-class AnalyticsPage extends StatefulWidget {
+/// Connected to Cloud Firestore for real-time data.
+class AnalyticsPage extends ConsumerStatefulWidget {
   const AnalyticsPage({super.key});
 
   @override
-  State<AnalyticsPage> createState() => _AnalyticsPageState();
+  ConsumerState<AnalyticsPage> createState() => _AnalyticsPageState();
 }
 
-class _AnalyticsPageState extends State<AnalyticsPage> {
+class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
   bool _isSendingNotif = false;
   final _notifTitleCtrl = TextEditingController();
   final _notifBodyCtrl = TextEditingController();
@@ -27,96 +30,174 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Analitik & Notifikasi', style: AppTypography.displaySmall),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Statistik penggunaan dan kirim notifikasi push',
-            style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
+    final analytics = ref.watch(analyticsProvider);
 
-          // ─── Trending Destinations ──────────────────────
-          Text('🔥 Destinasi Trending', style: AppTypography.headlineSmall),
-          const SizedBox(height: AppSpacing.xs),
-          Text('Destinasi paling banyak dijadwalkan minggu ini',
-              style: AppTypography.caption),
-          const SizedBox(height: AppSpacing.md),
-          _buildTrendingTable(),
-          const SizedBox(height: AppSpacing.xxl),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 600;
 
-          // ─── Activity Chart (Simplified bar chart) ─────
-          Text('📊 Aktivitas Pengguna', style: AppTypography.headlineSmall),
-          const SizedBox(height: AppSpacing.xs),
-          Text('Jumlah jadwal dibuat per hari (7 hari terakhir)',
-              style: AppTypography.caption),
-          const SizedBox(height: AppSpacing.md),
-          _buildBarChart(),
-          const SizedBox(height: AppSpacing.xxl),
+        if (analytics.isLoading) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(color: AppColors.primary),
+                const SizedBox(height: AppSpacing.base),
+                Text('Memuat data analitik dari Firestore...',
+                    style: AppTypography.bodyMedium),
+              ],
+            ),
+          );
+        }
 
-          // ─── Quick Stats ───────────────────────────────
-          Text('📈 Ringkasan Minggu Ini', style: AppTypography.headlineSmall),
-          const SizedBox(height: AppSpacing.md),
-          Row(
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(isNarrow ? AppSpacing.base : AppSpacing.xxl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                  child: _buildMiniStat(
-                      'Pengguna Baru', '48', Icons.person_add_rounded,
-                      AppColors.primary, '+12%')),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                  child: _buildMiniStat(
-                      'Jadwal Dibuat', '156', Icons.calendar_today_rounded,
-                      AppColors.success, '+8%')),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                  child: _buildMiniStat(
-                      'Review Baru', '34', Icons.rate_review_rounded,
-                      AppColors.warning, '+23%')),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                  child: _buildMiniStat(
-                      'Foto Diunggah', '89', Icons.photo_library_rounded,
-                      AppColors.info, '+15%')),
+              // Header with refresh button
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Analitik & Notifikasi',
+                            style: isNarrow
+                                ? AppTypography.headlineLarge
+                                : AppTypography.displaySmall),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'Statistik real-time dari Cloud Firestore',
+                          style: AppTypography.bodyMedium
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => ref.read(analyticsProvider.notifier).refresh(),
+                    icon: const Icon(Icons.refresh_rounded),
+                    tooltip: 'Refresh data',
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      foregroundColor: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // ─── Firestore connection badge ──────────────
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.08),
+                  borderRadius: AppSpacing.borderRadiusFull,
+                  border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.success,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      'Terhubung ke Firestore (asia-southeast2)',
+                      style: AppTypography.labelSmall
+                          .copyWith(color: AppColors.success),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // ─── Trending Destinations ──────────────────────
+              Text('🔥 Destinasi Trending', style: AppTypography.headlineSmall),
+              const SizedBox(height: AppSpacing.xs),
+              Text('Destinasi paling banyak dijadwalkan (dari koleksi schedules)',
+                  style: AppTypography.caption),
+              const SizedBox(height: AppSpacing.md),
+              isNarrow
+                  ? SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                          width: 600,
+                          child: _buildTrendingTable(analytics.trending)),
+                    )
+                  : _buildTrendingTable(analytics.trending),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // ─── Activity Chart ─────
+              Text('📊 Aktivitas Pengguna', style: AppTypography.headlineSmall),
+              const SizedBox(height: AppSpacing.xs),
+              Text('Jumlah jadwal dibuat per hari (7 hari terakhir)',
+                  style: AppTypography.caption),
+              const SizedBox(height: AppSpacing.md),
+              _buildBarChart(analytics.dailyActivity),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // ─── Quick Stats ───────────────────────────────
+              Text('📈 Ringkasan Minggu Ini', style: AppTypography.headlineSmall),
+              const SizedBox(height: AppSpacing.md),
+              _buildQuickStats(analytics.weeklyStats, isNarrow),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // ─── Push Notification Sender ──────────────────
+              Text('🔔 Kirim Push Notification',
+                  style: AppTypography.headlineSmall),
+              const SizedBox(height: AppSpacing.xs),
+              Text('Kirim notifikasi ke semua pengguna MEMOtrip (tersimpan ke Firestore)',
+                  style: AppTypography.caption),
+              const SizedBox(height: AppSpacing.md),
+              _buildNotificationForm(),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // ─── Notification History ──────────────────────
+              Text('📋 Riwayat Notifikasi',
+                  style: AppTypography.headlineSmall),
+              const SizedBox(height: AppSpacing.md),
+              _buildNotificationHistory(analytics.notifications),
             ],
           ),
-          const SizedBox(height: AppSpacing.xxl),
-
-          // ─── Push Notification Sender ──────────────────
-          Text('🔔 Kirim Push Notification',
-              style: AppTypography.headlineSmall),
-          const SizedBox(height: AppSpacing.xs),
-          Text('Kirim notifikasi ke semua pengguna MEMOtrip',
-              style: AppTypography.caption),
-          const SizedBox(height: AppSpacing.md),
-          _buildNotificationForm(),
-          const SizedBox(height: AppSpacing.xxl),
-
-          // ─── Notification History ──────────────────────
-          Text('📋 Riwayat Notifikasi',
-              style: AppTypography.headlineSmall),
-          const SizedBox(height: AppSpacing.md),
-          _buildNotificationHistory(),
-        ],
-      ),
+        );
+      },
     );
   }
 
   // ─── Trending Table ──────────────────────────────────
 
-  Widget _buildTrendingTable() {
-    final trending = [
-      _TrendingItem('Pantai Losari', 86, 4.7, '+15%', 1),
-      _TrendingItem('Masjid 99 Kubah', 72, 4.8, '+22%', 2),
-      _TrendingItem('CPI Makassar', 58, 4.5, '+5%', 3),
-      _TrendingItem('Fort Rotterdam', 45, 4.6, '+10%', 4),
-      _TrendingItem('Pallubasa Serigala', 38, 4.6, '+18%', 5),
-    ];
+  Widget _buildTrendingTable(List<TrendingDestination> trending) {
+    if (trending.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: AppSpacing.borderRadiusCard,
+          boxShadow: AppColors.cardShadow,
+          border: AppColors.cardBorder,
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(Icons.trending_up_rounded,
+                  size: 48, color: AppColors.textHint),
+              const SizedBox(height: AppSpacing.md),
+              Text('Belum ada data jadwal di Firestore',
+                  style: AppTypography.bodyMedium
+                      .copyWith(color: AppColors.textSecondary)),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -241,13 +322,28 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   // ─── Bar Chart ────────────────────────────────────────
 
-  Widget _buildBarChart() {
-    final days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-    final values = [12, 18, 22, 15, 28, 35, 30];
-    final maxVal = values.reduce((a, b) => a > b ? a : b).toDouble();
+  Widget _buildBarChart(List<DailyActivity> dailyActivity) {
+    if (dailyActivity.isEmpty) {
+      return Container(
+        height: 200,
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: AppSpacing.borderRadiusCard,
+          boxShadow: AppColors.cardShadow,
+          border: AppColors.cardBorder,
+        ),
+        child: const Center(child: Text('Belum ada data aktivitas')),
+      );
+    }
+
+    final maxVal = dailyActivity
+        .map((d) => d.count)
+        .fold(1, (a, b) => a > b ? a : b)
+        .toDouble();
 
     return Container(
-      height: 200,
+      height: 240,
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -257,16 +353,16 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(days.length, (i) {
-          final pct = values[i] / maxVal;
-          final isMax = values[i] == maxVal.toInt();
+        children: dailyActivity.map((d) {
+          final pct = d.count / maxVal;
+          final isMax = d.count == maxVal.toInt();
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text('${values[i]}',
+                  Text('${d.count}',
                       style: AppTypography.labelSmall.copyWith(
                           color: isMax
                               ? AppColors.primary
@@ -293,16 +389,54 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(days[i],
+                  Text(d.dayLabel,
                       style: AppTypography.labelSmall
                           .copyWith(color: AppColors.textSecondary)),
                 ],
               ),
             ),
           );
-        }),
+        }).toList(),
       ),
     );
+  }
+
+  // ─── Quick Stats ──────────────────────────────────────
+
+  Widget _buildQuickStats(WeeklyStats stats, bool isNarrow) {
+    if (isNarrow) {
+      return Column(children: [
+        Row(children: [
+          Expanded(child: _buildMiniStat('Pengguna Aktif', '${stats.newUsers}',
+              Icons.person_add_rounded, AppColors.primary, stats.usersChange)),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: _buildMiniStat('Jadwal Dibuat', '${stats.schedulesCreated}',
+              Icons.calendar_today_rounded, AppColors.success, stats.schedulesChange)),
+        ]),
+        const SizedBox(height: AppSpacing.md),
+        Row(children: [
+          Expanded(child: _buildMiniStat('Review Baru', '${stats.newReviews}',
+              Icons.rate_review_rounded, AppColors.warning, stats.reviewsChange)),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: _buildMiniStat('Foto Diunggah', '${stats.photosUploaded}',
+              Icons.photo_library_rounded, AppColors.info, stats.photosChange)),
+        ]),
+      ]);
+    }
+
+    return Row(children: [
+      Expanded(child: _buildMiniStat('Pengguna Aktif', '${stats.newUsers}',
+          Icons.person_add_rounded, AppColors.primary, stats.usersChange)),
+      const SizedBox(width: AppSpacing.lg),
+      Expanded(child: _buildMiniStat('Jadwal Dibuat', '${stats.schedulesCreated}',
+          Icons.calendar_today_rounded, AppColors.success, stats.schedulesChange)),
+      const SizedBox(width: AppSpacing.lg),
+      Expanded(child: _buildMiniStat('Review Baru', '${stats.newReviews}',
+          Icons.rate_review_rounded, AppColors.warning, stats.reviewsChange)),
+      const SizedBox(width: AppSpacing.lg),
+      Expanded(child: _buildMiniStat('Foto Diunggah', '${stats.photosUploaded}',
+          Icons.photo_library_rounded, AppColors.info, stats.photosChange)),
+    ]);
   }
 
   // ─── Mini Stats ───────────────────────────────────────
@@ -463,24 +597,30 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   // ─── Notification History ─────────────────────────────
 
-  Widget _buildNotificationHistory() {
-    final history = [
-      _NotifHistory(
-          'Cuaca Ekstrem ⚠️',
-          'Perhatian: Hujan lebat diprediksi sore ini di area Losari.',
-          DateTime.now().subtract(const Duration(days: 1)),
-          'all'),
-      _NotifHistory(
-          'Event Spesial 🎉',
-          'Festival kuliner Makassar di Pantai Losari minggu ini!',
-          DateTime.now().subtract(const Duration(days: 3)),
-          'losari'),
-      _NotifHistory(
-          'Destinasi Baru',
-          'Kopi Jilid kini tersedia di MEMOtrip. Cek sekarang!',
-          DateTime.now().subtract(const Duration(days: 5)),
-          'all'),
-    ];
+  Widget _buildNotificationHistory(List<NotificationItem> notifications) {
+    if (notifications.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: AppSpacing.borderRadiusCard,
+          boxShadow: AppColors.cardShadow,
+          border: AppColors.cardBorder,
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(Icons.notifications_off_rounded,
+                  size: 48, color: AppColors.textHint),
+              const SizedBox(height: AppSpacing.md),
+              Text('Belum ada notifikasi yang dikirim',
+                  style: AppTypography.bodyMedium
+                      .copyWith(color: AppColors.textSecondary)),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -490,7 +630,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         border: AppColors.cardBorder,
       ),
       child: Column(
-        children: history
+        children: notifications
             .map((n) => ListTile(
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
@@ -531,7 +671,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     return '${diff.inDays} hari lalu';
   }
 
-  void _sendNotification() {
+  void _sendNotification() async {
     if (_notifTitleCtrl.text.isEmpty || _notifBodyCtrl.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Judul dan isi notifikasi wajib diisi'),
@@ -540,39 +680,36 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       ));
       return;
     }
+
     setState(() => _isSendingNotif = true);
-    Future.delayed(const Duration(seconds: 2), () {
+
+    try {
+      await ref.read(analyticsProvider.notifier).sendNotification(
+            title: _notifTitleCtrl.text,
+            body: _notifBodyCtrl.text,
+            target: _notifTarget,
+          );
+
       if (mounted) {
-        setState(() => _isSendingNotif = false);
         _notifTitleCtrl.clear();
         _notifBodyCtrl.clear();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
-              'Notifikasi terkirim ke ${_notifTarget == "all" ? "semua pengguna" : "pengguna $_notifTarget"}'),
+              'Notifikasi terkirim ke ${_notifTarget == "all" ? "semua pengguna" : "pengguna $_notifTarget"} & tersimpan di Firestore'),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
         ));
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Gagal mengirim: $e'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _isSendingNotif = false);
+    }
   }
-}
-
-class _TrendingItem {
-  final String name;
-  final int scheduleCount;
-  final double rating;
-  final String trend;
-  final int rank;
-
-  const _TrendingItem(
-      this.name, this.scheduleCount, this.rating, this.trend, this.rank);
-}
-
-class _NotifHistory {
-  final String title;
-  final String body;
-  final DateTime sentAt;
-  final String target;
-
-  const _NotifHistory(this.title, this.body, this.sentAt, this.target);
 }

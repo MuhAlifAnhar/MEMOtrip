@@ -11,30 +11,27 @@ import '../../../destination/data/mock_destination_data.dart';
 import '../../../destination/domain/entities/destination.dart';
 import '../../../destination/presentation/pages/destination_detail_page.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../destination/presentation/providers/destination_provider.dart';
+
 /// Bookmark Page — Saved/bookmarked destinations list.
 /// PRD Section: "Profil → Bookmark"
-class BookmarkPage extends StatefulWidget {
+class BookmarkPage extends ConsumerStatefulWidget {
   const BookmarkPage({super.key});
 
   @override
-  State<BookmarkPage> createState() => _BookmarkPageState();
+  ConsumerState<BookmarkPage> createState() => _BookmarkPageState();
 }
 
-class _BookmarkPageState extends State<BookmarkPage> {
+class _BookmarkPageState extends ConsumerState<BookmarkPage> {
   late List<Destination> _bookmarked;
-
-  @override
-  void initState() {
-    super.initState();
-    _bookmarked = MockDestinationData.destinations
-        .where((d) => d.isBookmarked)
-        .toList();
-  }
 
   /// Remove bookmark and show undo snackbar.
   void _removeBookmark(int index) {
     final removed = _bookmarked[index];
-    setState(() => _bookmarked.removeAt(index));
+    
+    // Toggle bookmark status in Riverpod provider
+    ref.read(destinationsProvider.notifier).toggleBookmark(removed.id);
 
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -48,7 +45,7 @@ class _BookmarkPageState extends State<BookmarkPage> {
           label: 'UNDO',
           textColor: AppColors.primaryLight,
           onPressed: () {
-            setState(() => _bookmarked.insert(index, removed));
+            ref.read(destinationsProvider.notifier).toggleBookmark(removed.id);
           },
         ),
       ),
@@ -57,6 +54,9 @@ class _BookmarkPageState extends State<BookmarkPage> {
 
   @override
   Widget build(BuildContext context) {
+    _bookmarked = ref.watch(destinationsProvider)
+        .where((d) => d.isBookmarked)
+        .toList();
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),

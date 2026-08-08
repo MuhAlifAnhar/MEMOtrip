@@ -7,26 +7,24 @@ import '../../../destination/domain/entities/destination.dart';
 
 /// Admin Destinations Page — CRUD management for destination content.
 /// PRD: "Edit deskripsi, fasilitas, jam operasional, video 360°"
-class DestinationsPage extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:memotrip/features/destination/presentation/providers/destination_provider.dart';
+
+/// Admin Destinations Page — CRUD management for destination content.
+/// PRD: "Edit deskripsi, fasilitas, jam operasional, video 360°"
+class DestinationsPage extends ConsumerStatefulWidget {
   const DestinationsPage({super.key});
 
   @override
-  State<DestinationsPage> createState() => _DestinationsPageState();
+  ConsumerState<DestinationsPage> createState() => _DestinationsPageState();
 }
 
-class _DestinationsPageState extends State<DestinationsPage> {
-  late List<Destination> _destinations;
+class _DestinationsPageState extends ConsumerState<DestinationsPage> {
   String _searchQuery = '';
   String _filterCategory = 'all';
 
-  @override
-  void initState() {
-    super.initState();
-    _destinations = List.from(MockDestinationData.destinations);
-  }
-
-  List<Destination> get _filtered {
-    var list = _destinations;
+  List<Destination> _getFiltered(List<Destination> destinations) {
+    var list = destinations;
     if (_filterCategory != 'all') {
       list = list.where((d) => d.category == _filterCategory).toList();
     }
@@ -42,123 +40,218 @@ class _DestinationsPageState extends State<DestinationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header — entrance animation
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOut,
-            builder: (_, v, child) => Opacity(opacity: v, child: child),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Manajemen Destinasi',
-                        style: AppTypography.displaySmall),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text('Kelola konten dan informasi destinasi wisata',
-                        style: AppTypography.bodyMedium
-                            .copyWith(color: AppColors.textSecondary)),
-                  ],
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddEditDialog(context, null),
-                  icon: const Icon(Icons.add_rounded, size: 20),
-                  label: const Text('Tambah Destinasi'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
+    final destinations = ref.watch(destinationsProvider);
+    final filtered = _getFiltered(destinations);
 
-          // Filters Row
-          Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 600;
+
+        return Padding(
+          padding: EdgeInsets.all(isNarrow ? AppSpacing.base : AppSpacing.xxl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Search
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  onChanged: (v) => setState(() => _searchQuery = v),
-                  style: AppTypography.bodyMedium,
-                  decoration: InputDecoration(
-                    hintText: 'Cari destinasi...',
-                    prefixIcon: const Icon(Icons.search_rounded,
-                        color: AppColors.textHint, size: 20),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: AppSpacing.borderRadiusMedium,
-                      borderSide: const BorderSide(color: AppColors.divider),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: AppSpacing.borderRadiusMedium,
-                      borderSide: const BorderSide(color: AppColors.divider),
-                    ),
-                  ),
-                ),
+              // Header
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeOut,
+                builder: (_, v, child) => Opacity(opacity: v, child: child),
+                child: isNarrow
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Manajemen Destinasi',
+                              style: AppTypography.headlineLarge),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text('Kelola konten dan informasi destinasi wisata',
+                              style: AppTypography.bodyMedium
+                                  .copyWith(color: AppColors.textSecondary)),
+                          const SizedBox(height: AppSpacing.md),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _showAddEditDialog(context, null),
+                              icon: const Icon(Icons.add_rounded, size: 20),
+                              label: const Text('Tambah Destinasi'),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Manajemen Destinasi',
+                                  style: AppTypography.displaySmall),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text('Kelola konten dan informasi destinasi wisata',
+                                  style: AppTypography.bodyMedium
+                                      .copyWith(color: AppColors.textSecondary)),
+                            ],
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () => _showAddEditDialog(context, null),
+                            icon: const Icon(Icons.add_rounded, size: 20),
+                            label: const Text('Tambah Destinasi'),
+                          ),
+                        ],
+                      ),
               ),
-              const SizedBox(width: AppSpacing.base),
-              // Category Filter
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: AppSpacing.borderRadiusMedium,
-                    border: Border.all(color: AppColors.divider),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _filterCategory,
-                      isExpanded: true,
-                      style: AppTypography.bodyMedium,
-                      items: const [
-                        DropdownMenuItem(
-                            value: 'all', child: Text('Semua Kategori')),
-                        DropdownMenuItem(
-                            value: 'pantai', child: Text('🏖️ Pantai')),
-                        DropdownMenuItem(
-                            value: 'gunung', child: Text('⛰️ Gunung')),
-                        DropdownMenuItem(
-                            value: 'kafe', child: Text('☕ Kafe')),
-                        DropdownMenuItem(
-                            value: 'restoran', child: Text('🍽️ Restoran')),
-                      ],
-                      onChanged: (v) =>
-                          setState(() => _filterCategory = v ?? 'all'),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.xl),
 
-          // Stats bar
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.base, vertical: AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.primarySurface,
-              borderRadius: AppSpacing.borderRadiusSmall,
-            ),
-            child: Row(
-              children: [
-                Text('Total: ${_filtered.length} destinasi',
-                    style: AppTypography.labelMedium
-                        .copyWith(color: AppColors.primary)),
-                const Spacer(),
-                ..._categoryChips(),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.base),
+              // Filters
+              isNarrow
+                  ? Column(
+                      children: [
+                        TextField(
+                          onChanged: (v) => setState(() => _searchQuery = v),
+                          style: AppTypography.bodyMedium,
+                          decoration: InputDecoration(
+                            hintText: 'Cari destinasi...',
+                            prefixIcon: const Icon(Icons.search_rounded,
+                                color: AppColors.textHint, size: 20),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: AppSpacing.borderRadiusMedium,
+                              borderSide: const BorderSide(color: AppColors.divider),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: AppSpacing.borderRadiusMedium,
+                              borderSide: const BorderSide(color: AppColors.divider),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: AppSpacing.borderRadiusMedium,
+                            border: Border.all(color: AppColors.divider),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _filterCategory,
+                              isExpanded: true,
+                              style: AppTypography.bodyMedium,
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'all', child: Text('Semua Kategori')),
+                                DropdownMenuItem(
+                                    value: 'pantai', child: Text('🏖️ Pantai')),
+                                DropdownMenuItem(
+                                    value: 'gunung', child: Text('⛰️ Gunung')),
+                                DropdownMenuItem(
+                                    value: 'kafe', child: Text('☕ Kafe')),
+                                DropdownMenuItem(
+                                    value: 'restoran', child: Text('🍽️ Restoran')),
+                              ],
+                              onChanged: (v) =>
+                                  setState(() => _filterCategory = v ?? 'all'),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            onChanged: (v) => setState(() => _searchQuery = v),
+                            style: AppTypography.bodyMedium,
+                            decoration: InputDecoration(
+                              hintText: 'Cari destinasi...',
+                              prefixIcon: const Icon(Icons.search_rounded,
+                                  color: AppColors.textHint, size: 20),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: AppSpacing.borderRadiusMedium,
+                                borderSide: const BorderSide(color: AppColors.divider),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: AppSpacing.borderRadiusMedium,
+                                borderSide: const BorderSide(color: AppColors.divider),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.base),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: AppSpacing.borderRadiusMedium,
+                              border: Border.all(color: AppColors.divider),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _filterCategory,
+                                isExpanded: true,
+                                style: AppTypography.bodyMedium,
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: 'all', child: Text('Semua Kategori')),
+                                  DropdownMenuItem(
+                                      value: 'pantai', child: Text('🏖️ Pantai')),
+                                  DropdownMenuItem(
+                                      value: 'gunung', child: Text('⛰️ Gunung')),
+                                  DropdownMenuItem(
+                                      value: 'kafe', child: Text('☕ Kafe')),
+                                  DropdownMenuItem(
+                                      value: 'restoran', child: Text('🍽️ Restoran')),
+                                ],
+                                onChanged: (v) =>
+                                    setState(() => _filterCategory = v ?? 'all'),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // Stats bar
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.base, vertical: AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySurface,
+                  borderRadius: AppSpacing.borderRadiusSmall,
+                ),
+                child: isNarrow
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Total: ${filtered.length} destinasi',
+                              style: AppTypography.labelMedium
+                                  .copyWith(color: AppColors.primary)),
+                          const SizedBox(height: AppSpacing.sm),
+                          Wrap(
+                            spacing: AppSpacing.xs,
+                            runSpacing: AppSpacing.xs,
+                            children: _categoryChips(destinations),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Text('Total: ${filtered.length} destinasi',
+                              style: AppTypography.labelMedium
+                                  .copyWith(color: AppColors.primary)),
+                          const Spacer(),
+                          ..._categoryChips(destinations),
+                        ],
+                      ),
+              ),
+              const SizedBox(height: AppSpacing.base),
 
           // Table
           Expanded(
@@ -167,9 +260,9 @@ class _DestinationsPageState extends State<DestinationsPage> {
                 color: Colors.white,
                 borderRadius: AppSpacing.borderRadiusCard,
                 boxShadow: AppColors.cardShadow,
-        border: AppColors.cardBorder,
+                border: AppColors.cardBorder,
               ),
-              child: _filtered.isEmpty
+              child: filtered.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -186,10 +279,10 @@ class _DestinationsPageState extends State<DestinationsPage> {
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.all(AppSpacing.base),
-                      itemCount: _filtered.length,
+                      itemCount: filtered.length,
                       separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (context, index) {
-                        final d = _filtered[index];
+                        final d = filtered[index];
                         return TweenAnimationBuilder<double>(
                           tween: Tween(begin: 0.0, end: 1.0),
                           duration: Duration(milliseconds: 350 + (index * 50)),
@@ -207,11 +300,13 @@ class _DestinationsPageState extends State<DestinationsPage> {
         ],
       ),
     );
+      },
+    );
   }
 
-  List<Widget> _categoryChips() {
+  List<Widget> _categoryChips(List<Destination> destinations) {
     final counts = <String, int>{};
-    for (final d in _destinations) {
+    for (final d in destinations) {
       counts[d.category] = (counts[d.category] ?? 0) + 1;
     }
     return counts.entries
@@ -364,7 +459,7 @@ class _DestinationsPageState extends State<DestinationsPage> {
               child: const Text('Batal')),
           ElevatedButton(
             onPressed: () {
-              setState(() => _destinations.remove(d));
+              ref.read(destinationsProvider.notifier).deleteDestination(d.id);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text('"${d.name}" telah dihapus'),
@@ -477,14 +572,15 @@ class _DestinationsPageState extends State<DestinationsPage> {
                                 existing?.operatingHours ?? const {},
                             hardwareId: existing?.hardwareId,
                           );
-                          setState(() {
-                            if (isEdit) {
-                              final idx = _destinations.indexOf(existing);
-                              if (idx >= 0) _destinations[idx] = newDest;
-                            } else {
-                              _destinations.add(newDest);
-                            }
-                          });
+                          if (isEdit) {
+                            ref
+                                .read(destinationsProvider.notifier)
+                                .updateDestination(newDest);
+                          } else {
+                            ref
+                                .read(destinationsProvider.notifier)
+                                .addDestination(newDest);
+                          }
                           Navigator.pop(ctx);
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             content: Text(isEdit
