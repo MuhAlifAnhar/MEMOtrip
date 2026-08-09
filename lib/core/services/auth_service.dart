@@ -65,6 +65,26 @@ class AuthService {
     return credential;
   }
 
+  // ─── Update Profile ───────────────────────────────────
+  static Future<void> updateProfile({
+    required String name,
+    required String photoUrl,
+  }) async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await user.updateDisplayName(name.trim());
+      await user.updatePhotoURL(photoUrl.trim());
+      await user.reload();
+
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'name': name.trim(),
+        'email': user.email,
+        'photoUrl': photoUrl.trim(),
+      }, SetOptions(merge: true));
+    }
+  }
+
   // ─── Sign Out ─────────────────────────────────────────
   static Future<void> signOut() async {
     await _auth.signOut();

@@ -10,6 +10,7 @@ import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/page_transitions.dart';
 import '../../../../core/utils/placeholder_images.dart';
 import '../../../../core/widgets/app_network_image.dart';
+import '../../../../core/providers/auth_provider.dart';
 import '../../data/mock_schedule_data.dart';
 import '../../domain/entities/schedule.dart';
 import '../../../destination/presentation/providers/destination_provider.dart';
@@ -84,9 +85,10 @@ class _SchedulePageState extends ConsumerState<SchedulePage>
       builder: (ctx) => ScheduleEditorDialog(
         availableDestinations: availableDestinations,
         onSave: (title, items) {
+          final currentUser = ref.read(authUserProvider).value;
           final newSchedule = Schedule(
             id: 's_${DateTime.now().millisecondsSinceEpoch}',
-            userId: 'u1',
+            userId: currentUser?.uid ?? 'u1',
             title: title,
             items: items,
             createdAt: DateTime.now(),

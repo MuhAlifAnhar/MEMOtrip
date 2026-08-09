@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
@@ -8,25 +9,54 @@ import '../../../../core/utils/page_transitions.dart';
 import '../../../../core/utils/placeholder_images.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/widgets/app_network_image.dart';
-import '../../data/mock_visit_data.dart';
+import '../../../destination/presentation/providers/destination_provider.dart';
+import '../../../destination/domain/entities/destination.dart';
+import '../providers/visit_provider.dart';
+import '../../../../core/providers/auth_provider.dart';
 import '../../../destination/presentation/pages/destination_detail_page.dart';
+
+class ResolvedVisit {
+  final UserVisitRecord visit;
+  final Destination destination;
+
+  const ResolvedVisit({required this.visit, required this.destination});
+}
 
 /// Visit History Page — List of previously visited destinations.
 /// PRD Section: "Profil → Riwayat Kunjungan"
-class VisitHistoryPage extends StatefulWidget {
+class VisitHistoryPage extends ConsumerStatefulWidget {
   const VisitHistoryPage({super.key});
 
   @override
-  State<VisitHistoryPage> createState() => _VisitHistoryPageState();
+  ConsumerState<VisitHistoryPage> createState() => _VisitHistoryPageState();
 }
 
-class _VisitHistoryPageState extends State<VisitHistoryPage> {
+class _VisitHistoryPageState extends ConsumerState<VisitHistoryPage> {
   String _selectedFilter = 'all';
   String _sortBy = 'terbaru';
 
+  List<UserVisitRecord> get _visits {
+    final currentUser = ref.watch(authUserProvider).value;
+    final currentUserId = currentUser?.uid ?? 'u1';
+    return ref.watch(visitsProvider)
+        .where((v) => v.userId == currentUserId || v.userId == 'u1' || v.userId.isEmpty)
+        .toList();
+  }
+
   // Data source — single source of truth for visit history
-  List<VisitRecord> get _visits => MockVisitData.visits;
-  List<ResolvedVisit> get _resolvedVisits => MockVisitData.resolvedVisits;
+  List<ResolvedVisit> get _resolvedVisits {
+    final visits = _visits;
+    final destinations = ref.watch(destinationsProvider);
+
+    final list = <ResolvedVisit>[];
+    for (final v in visits) {
+      final dests = destinations.where((d) => d.id == v.destinationId);
+      if (dests.isNotEmpty) {
+        list.add(ResolvedVisit(visit: v, destination: dests.first));
+      }
+    }
+    return list;
+  }
 
   List<ResolvedVisit> get _filtered {
     var list = List<ResolvedVisit>.from(_resolvedVisits);
@@ -66,7 +96,7 @@ class _VisitHistoryPageState extends State<VisitHistoryPage> {
   ];
 
   // Unique destinations visited count
-  int get _uniqueDestinations => MockVisitData.uniqueDestinations;
+  int get _uniqueDestinations => _resolvedVisits.map((rv) => rv.destination.id).toSet().length;
 
   @override
   Widget build(BuildContext context) {
@@ -192,7 +222,12 @@ class _VisitHistoryPageState extends State<VisitHistoryPage> {
   }
 
   // ─── Header Stat ──────────────────────────────────────────
-  String get _avgRating => MockVisitData.averageRating;
+  String get _avgRating {
+    final ratings = _visits.where((v) => v.rating != null).map((v) => v.rating!);
+    if (ratings.isEmpty) return '—';
+    final avg = ratings.reduce((a, b) => a + b) / ratings.length;
+    return avg.toStringAsFixed(1);
+  }
 
   Widget _headerStat(String value, String label, IconData icon) {
     return Row(

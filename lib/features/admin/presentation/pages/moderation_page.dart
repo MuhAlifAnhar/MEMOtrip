@@ -119,7 +119,7 @@ class _ModerationPageState extends ConsumerState<ModerationPage>
                   children: [
                     _buildPendingTab(pendingReviews),
                     _buildApprovedTab(approvedReviews),
-                    _buildReportsTab(reports),
+                    _buildReportsTab(reports, isNarrow),
                   ],
                 ),
               ),
@@ -181,14 +181,14 @@ class _ModerationPageState extends ConsumerState<ModerationPage>
 
   // ─── Reports Tab ──────────────────────────────────────
 
-  Widget _buildReportsTab(List<ReportItem> reports) {
+  Widget _buildReportsTab(List<ReportItem> reports, bool isNarrow) {
     if (reports.isEmpty) {
       return _buildEmptyState(
           Icons.flag_outlined, 'Tidak ada laporan konten');
     }
     return ListView.builder(
       itemCount: reports.length,
-      itemBuilder: (_, i) => _buildReportCard(reports[i]),
+      itemBuilder: (_, i) => _buildReportCard(reports[i], isNarrow),
     );
   }
 
@@ -299,7 +299,7 @@ class _ModerationPageState extends ConsumerState<ModerationPage>
     );
   }
 
-  Widget _buildReportCard(ReportItem report) {
+  Widget _buildReportCard(ReportItem report, bool isNarrow) {
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -309,51 +309,202 @@ class _ModerationPageState extends ConsumerState<ModerationPage>
         boxShadow: AppColors.cardShadow,
         border: Border.all(color: AppColors.error.withOpacity(0.2)),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.error.withOpacity(0.1),
-              borderRadius: AppSpacing.borderRadiusSmall,
-            ),
-            child: const Icon(Icons.flag_rounded,
-                color: AppColors.error, size: 24),
-          ),
-          const SizedBox(width: AppSpacing.base),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Dilaporkan oleh ${report.reporterName}',
-                    style: AppTypography.titleSmall),
-                const SizedBox(height: 4),
-                Text('Alasan: ${report.reason}',
-                    style: AppTypography.bodySmall),
-                const SizedBox(height: 4),
-                Text('Review ID: ${report.targetReviewId}',
-                    style: AppTypography.caption),
-                Text(_timeAgo(report.timestamp),
-                    style: AppTypography.caption),
-              ],
-            ),
-          ),
           Row(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              OutlinedButton(
-                onPressed: () => _dismissReport(report),
-                child: const Text('Abaikan'),
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withOpacity(0.1),
+                  borderRadius: AppSpacing.borderRadiusSmall,
+                ),
+                child: const Icon(Icons.flag_rounded,
+                    color: AppColors.error, size: 22),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              ElevatedButton(
-                onPressed: () => _removeReportedContent(report),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.error),
-                child: const Text('Hapus Konten'),
+              const SizedBox(width: AppSpacing.base),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Dilaporkan oleh ${report.reporterName}',
+                        style: AppTypography.titleSmall),
+                    const SizedBox(height: 4),
+                    Text('Alasan: ${report.reason}',
+                        style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.bold, color: AppColors.error)),
+                    const SizedBox(height: 4),
+                    Text('Review ID: ${report.targetReviewId}',
+                        style: AppTypography.caption),
+                    Text(_timeAgo(report.timestamp),
+                        style: AppTypography.caption),
+                  ],
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const Divider(height: 1),
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.visibility_rounded, size: 16),
+                label: const Text('Detail / View'),
+                onPressed: () => _showReportDetailsDialog(report),
+              ),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.check_rounded, size: 16),
+                label: const Text('Abaikan'),
+                onPressed: () => _dismissReport(report),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                label: const Text('Hapus Konten'),
+                onPressed: () => _removeReportedContent(report),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportDetailsDialog(ReportItem report) {
+    final allReviews = ref.read(reviewsProvider);
+    Review review;
+    try {
+      review = allReviews.firstWhere((r) => r.id == report.targetReviewId);
+    } catch (_) {
+      review = Review(
+        id: report.targetReviewId,
+        userId: '',
+        userName: 'Tidak Ditemukan',
+        destinationId: '',
+        comment: '(Ulasan telah dihapus atau tidak ditemukan di database)',
+        rating: 0.0,
+        timestamp: DateTime.now(),
+      );
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusCard),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                borderRadius: AppSpacing.borderRadiusMedium,
+              ),
+              child: const Icon(Icons.flag_rounded, color: AppColors.error, size: 20),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                'Detail Laporan Konten',
+                style: AppTypography.headlineMedium,
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Reporter Info
+              Text('INFORMASI LAPORAN', style: AppTypography.labelSmall.copyWith(color: AppColors.textHint)),
+              const SizedBox(height: 6),
+              Text('Pelapor: ${report.reporterName}', style: AppTypography.titleSmall),
+              Text('Alasan: "${report.reason}"', style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600, color: AppColors.error)),
+              Text('Waktu Laporan: ${_timeAgo(report.timestamp)}', style: AppTypography.caption),
+              const Divider(height: 24),
+
+              // Reported Review Info
+              Text('KONTEN YANG DILAPORKAN', style: AppTypography.labelSmall.copyWith(color: AppColors.textHint)),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.base),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: AppSpacing.borderRadiusMedium,
+                  border: Border.all(color: AppColors.divider, width: 0.8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: AppColors.primarySurface,
+                          child: Text(
+                            review.userName.isNotEmpty ? review.userName[0].toUpperCase() : '?',
+                            style: AppTypography.labelSmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            review.userName,
+                            style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        if (review.rating != null && review.rating! > 0)
+                          Row(
+                            children: [
+                              const Icon(Icons.star_rounded, size: 14, color: AppColors.starFilled),
+                              const SizedBox(width: 2),
+                              Text(review.rating!.toStringAsFixed(1), style: AppTypography.labelSmall),
+                            ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      review.comment,
+                      style: AppTypography.bodyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Destinasi ID: ${review.destinationId}  •  Dibuat: ${review.timestamp.day}/${review.timestamp.month}/${review.timestamp.year}',
+                      style: AppTypography.caption,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Tutup', style: AppTypography.labelMedium.copyWith(color: AppColors.textSecondary)),
+          ),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _dismissReport(report);
+            },
+            child: const Text('Abaikan Laporan'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _removeReportedContent(report);
+            },
+            child: const Text('Hapus Konten'),
           ),
         ],
       ),

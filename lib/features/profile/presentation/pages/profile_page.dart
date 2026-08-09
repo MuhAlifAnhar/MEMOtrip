@@ -13,6 +13,9 @@ import '../../../profile/presentation/pages/bookmark_page.dart';
 import '../../../profile/presentation/pages/settings_page.dart';
 import '../../../destination/data/mock_destination_data.dart';
 import '../../data/mock_visit_data.dart';
+import '../providers/visit_provider.dart';
+import '../../../schedule/presentation/providers/schedule_provider.dart';
+import '../../../../core/providers/auth_provider.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../destination/presentation/providers/destination_provider.dart';
@@ -54,6 +57,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(authUserProvider).value;
+    final currentUserId = currentUser?.uid ?? 'u1';
+
+    final totalVisits = ref.watch(visitsProvider).where((v) => v.userId == currentUserId || v.userId == 'u1' || v.userId.isEmpty).length;
+    final totalSchedules = ref.watch(schedulesProvider).where((s) => s.userId == currentUserId || s.userId == 'u1' || s.userId.isEmpty).length;
+    final totalBookmarks = ref.watch(destinationsProvider).where((d) => d.isBookmarked).length;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
@@ -86,7 +96,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                 radius: 32,
                                 backgroundColor: AppColors.primarySurface,
                                 backgroundImage: CachedNetworkImageProvider(
-                                  PlaceholderImages.avatar(),
+                                  (currentUser?.photoURL != null && currentUser!.photoURL!.isNotEmpty)
+                                      ? currentUser.photoURL!
+                                      : PlaceholderImages.avatar(),
                                 ),
                                 child: null),
                           ),
@@ -96,19 +108,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                   crossAxisAlignment:
                                       CrossAxisAlignment.start,
                                   children: [
-                                Text(AuthService.currentUser?.displayName ?? 'Traveler',
+                                Text(currentUser?.displayName ?? 'Traveler',
                                     style: AppTypography.headlineLarge),
-                                Text(AuthService.currentUser?.email ?? 'traveler@memotrip.id',
+                                Text(currentUser?.email ?? 'traveler@memotrip.id',
                                     style: AppTypography.bodySmall),
                               ])),
-                          Container(
-                            padding: const EdgeInsets.all(AppSpacing.sm),
-                            decoration: BoxDecoration(
-                                color: AppColors.cardBackground,
-                                shape: BoxShape.circle,
-                                boxShadow: AppColors.cardShadow),
-                            child: const Icon(Icons.edit_rounded,
-                                color: AppColors.primary, size: 20),
+                          GestureDetector(
+                            onTap: () => _showEditProfileDialog(context),
+                            child: Container(
+                              padding: const EdgeInsets.all(AppSpacing.sm),
+                              decoration: BoxDecoration(
+                                  color: AppColors.cardBackground,
+                                  shape: BoxShape.circle,
+                                  boxShadow: AppColors.cardShadow),
+                              child: const Icon(Icons.edit_rounded,
+                                  color: AppColors.primary, size: 20),
+                            ),
                           ),
                         ]),
                       ),
@@ -128,17 +143,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                               mainAxisAlignment:
                                   MainAxisAlignment.spaceAround,
                               children: [
-                                _stat('${MockVisitData.totalVisits}', 'Kunjungan'),
+                                _stat('$totalVisits', 'Kunjungan'),
                                 Container(
                                     width: 1,
                                     height: 40,
                                     color: Colors.white24),
-                                _stat('3', 'Jadwal'),
+                                _stat('$totalSchedules', 'Jadwal'),
                                 Container(
                                     width: 1,
                                     height: 40,
                                     color: Colors.white24),
-                                _stat('${ref.watch(destinationsProvider).where((d) => d.isBookmarked).length}', 'Bookmark'),
+                                _stat('$totalBookmarks', 'Bookmark'),
                               ]),
                         ),
                       ),
@@ -332,6 +347,145 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           ),
         ],
       ),
+    );
+  }
+
+  // ─── Edit Profile Dialog ──────────────────────────────────
+  void _showEditProfileDialog(BuildContext context) {
+    final currentUser = ref.read(authUserProvider).value;
+    final nameController = TextEditingController(text: currentUser?.displayName ?? '');
+    final photoUrlController = TextEditingController(text: currentUser?.photoURL ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        bool isLoading = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: AppColors.cardBackground,
+              shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusCard),
+              title: Text('Ubah Profil', style: AppTypography.headlineMedium),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        style: AppTypography.bodyMedium,
+                        decoration: InputDecoration(
+                          labelText: 'Nama Lengkap',
+                          labelStyle: AppTypography.bodySmall,
+                          prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.primary),
+                          filled: true,
+                          fillColor: AppColors.textPrimary.withOpacity(0.05),
+                          border: OutlineInputBorder(
+                            borderRadius: AppSpacing.borderRadiusMedium,
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Nama tidak boleh kosong';
+                          }
+                          if (v.trim().length < 2) {
+                            return 'Nama minimal 2 karakter';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      TextFormField(
+                        controller: photoUrlController,
+                        style: AppTypography.bodyMedium,
+                        decoration: InputDecoration(
+                          labelText: 'URL Foto Profil',
+                          labelStyle: AppTypography.bodySmall,
+                          prefixIcon: const Icon(Icons.image_outlined, color: AppColors.primary),
+                          filled: true,
+                          fillColor: AppColors.textPrimary.withOpacity(0.05),
+                          border: OutlineInputBorder(
+                            borderRadius: AppSpacing.borderRadiusMedium,
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        validator: (v) {
+                          if (v != null && v.trim().isNotEmpty) {
+                            final uri = Uri.tryParse(v.trim());
+                            if (uri == null || !uri.hasAbsolutePath) {
+                              return 'Format URL tidak valid';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.pop(ctx),
+                  child: Text(
+                    'Batal',
+                    style: AppTypography.labelMedium.copyWith(color: AppColors.textSecondary),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (!formKey.currentState!.validate()) return;
+                          setState(() => isLoading = true);
+                          try {
+                            await AuthService.updateProfile(
+                              name: nameController.text.trim(),
+                              photoUrl: photoUrlController.text.trim(),
+                            );
+                            ref.invalidate(authUserProvider);
+                            if (ctx.mounted) {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Profil berhasil diperbarui'),
+                                  backgroundColor: AppColors.primary,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            setState(() => isLoading = false);
+                            if (ctx.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Gagal memperbarui profil: $e'),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusMedium),
+                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text('Simpan'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
