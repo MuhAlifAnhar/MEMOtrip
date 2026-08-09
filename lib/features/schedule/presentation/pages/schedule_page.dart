@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -11,15 +12,18 @@ import '../../../../core/utils/placeholder_images.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../data/mock_schedule_data.dart';
 import '../../domain/entities/schedule.dart';
+import '../../../destination/presentation/providers/destination_provider.dart';
+import '../providers/schedule_provider.dart';
+import '../widgets/schedule_editor_dialog.dart';
 import 'schedule_detail_page.dart';
 
-class SchedulePage extends StatefulWidget {
+class SchedulePage extends ConsumerStatefulWidget {
   const SchedulePage({super.key});
   @override
-  State<SchedulePage> createState() => _SchedulePageState();
+  ConsumerState<SchedulePage> createState() => _SchedulePageState();
 }
 
-class _SchedulePageState extends State<SchedulePage>
+class _SchedulePageState extends ConsumerState<SchedulePage>
     with SingleTickerProviderStateMixin {
   late List<Schedule> _schedules;
 
@@ -30,7 +34,6 @@ class _SchedulePageState extends State<SchedulePage>
   @override
   void initState() {
     super.initState();
-    _schedules = List<Schedule>.from(MockScheduleData.schedules);
     _entranceCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -53,6 +56,8 @@ class _SchedulePageState extends State<SchedulePage>
 
   @override
   Widget build(BuildContext context) {
+    _schedules = ref.watch(schedulesProvider);
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
@@ -65,6 +70,39 @@ class _SchedulePageState extends State<SchedulePage>
           ),
         ),
         ),
+      ),
+    );
+  }
+
+  void _showCreateDialog() {
+    final availableDestinations = ref.read(destinationsProvider);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ScheduleEditorDialog(
+        availableDestinations: availableDestinations,
+        onSave: (title, items) {
+          final newSchedule = Schedule(
+            id: 's_${DateTime.now().millisecondsSinceEpoch}',
+            userId: 'u1',
+            title: title,
+            items: items,
+            createdAt: DateTime.now(),
+          );
+          ref.read(schedulesProvider.notifier).addSchedule(newSchedule);
+          Navigator.pop(ctx);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Jadwal baru berhasil dibuat!'),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: AppSpacing.borderRadiusMedium),
+            ),
+          );
+        },
       ),
     );
   }
@@ -92,9 +130,9 @@ class _SchedulePageState extends State<SchedulePage>
                   .copyWith(color: AppColors.textSecondary)),
           const SizedBox(height: AppSpacing.xl),
           ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.explore_rounded, size: 18),
-              label: const Text(AppStrings.cariDestinasiSekarang)),
+              onPressed: _showCreateDialog,
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Buat Jadwal Baru')),
         ]),
       ),
     );
@@ -141,7 +179,7 @@ class _SchedulePageState extends State<SchedulePage>
                     const Spacer(),
                     // Tambah Jadwal button
                     GestureDetector(
-                      onTap: () {},
+                      onTap: _showCreateDialog,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                         decoration: BoxDecoration(
@@ -458,121 +496,33 @@ class _SchedulePageState extends State<SchedulePage>
   // ── Edit Dialog ────────────────────────────────────────
 
   void _showEditDialog(Schedule s) {
-    final titleCtrl = TextEditingController(text: s.title);
+    final availableDestinations = ref.read(destinationsProvider);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: EdgeInsets.only(
-          top: AppSpacing.xl,
-          left: AppSpacing.xl,
-          right: AppSpacing.xl,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
-        ),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(
-              top: Radius.circular(AppSpacing.radiusLarge)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle bar
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.divider,
-                  borderRadius: AppSpacing.borderRadiusFull,
-                ),
-              ),
+      builder: (ctx) => ScheduleEditorDialog(
+        initialSchedule: s,
+        availableDestinations: availableDestinations,
+        onSave: (title, items) {
+          final updated = s.copyWith(
+            title: title,
+            items: items,
+            updatedAt: DateTime.now(),
+          );
+          ref.read(schedulesProvider.notifier).updateSchedule(updated);
+          Navigator.pop(ctx);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppStrings.jadwalDiperbarui),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: AppSpacing.borderRadiusMedium),
             ),
-            const SizedBox(height: AppSpacing.lg),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.primarySurface,
-                    borderRadius: AppSpacing.borderRadiusMedium,
-                  ),
-                  child: const Icon(Icons.edit_rounded,
-                      color: AppColors.primary, size: 20),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Text(AppStrings.editJadwal,
-                    style: AppTypography.headlineMedium),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text(AppStrings.judulJadwal, style: AppTypography.labelLarge),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: titleCtrl,
-              style: AppTypography.bodyMedium,
-              decoration: InputDecoration(
-                hintText: 'Masukkan judul jadwal...',
-                hintStyle: AppTypography.bodyMedium
-                    .copyWith(color: AppColors.textHint),
-                filled: true,
-                fillColor: AppColors.background,
-                border: OutlineInputBorder(
-                  borderRadius: AppSpacing.borderRadiusMedium,
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.base, vertical: AppSpacing.md),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text(AppStrings.batal),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      final newTitle = titleCtrl.text.trim();
-                      if (newTitle.isNotEmpty) {
-                        setState(() {
-                          final idx =
-                              _schedules.indexWhere((e) => e.id == s.id);
-                          if (idx != -1) {
-                            _schedules[idx] = _schedules[idx].copyWith(
-                              title: newTitle,
-                              updatedAt: DateTime.now(),
-                            );
-                          }
-                        });
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(AppStrings.jadwalDiperbarui),
-                            backgroundColor: AppColors.success,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: AppSpacing.borderRadiusMedium),
-                          ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.check_rounded, size: 18),
-                    label: const Text(AppStrings.simpan),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -643,9 +593,7 @@ class _SchedulePageState extends State<SchedulePage>
           ),
           ElevatedButton.icon(
             onPressed: () {
-              setState(() {
-                _schedules.removeWhere((e) => e.id == s.id);
-              });
+              ref.read(schedulesProvider.notifier).deleteSchedule(s.id);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

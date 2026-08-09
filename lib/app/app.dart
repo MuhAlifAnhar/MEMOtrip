@@ -3,8 +3,10 @@ import 'theme.dart';
 import 'routes.dart';
 import 'auth_gate.dart';
 import '../core/constants/app_strings.dart';
+import '../core/services/auth_service.dart';
 import '../core/utils/page_transitions.dart';
 import '../core/widgets/floating_navbar.dart';
+import '../features/auth/presentation/pages/login_page.dart';
 import '../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../features/destination/presentation/pages/discovery_page.dart';
 import '../features/schedule/presentation/pages/schedule_page.dart';
@@ -21,10 +23,37 @@ class MemoTripApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const AuthGate(),
-      // Apply custom page transitions to all named routes
+      // Apply custom page transitions to all named routes with Route Guarding
       onGenerateRoute: (settings) {
         final routeBuilders = AppRoutes.routes;
-        final builder = routeBuilders[settings.name];
+        final name = settings.name;
+
+        final bool isSignedIn = AuthService.currentUser != null;
+        final bool isAuthRoute = name == AppRoutes.login || name == AppRoutes.register;
+
+        // Route Guard 1: Redirect unauthenticated users trying to access secure routes to login
+        if (!isSignedIn && !isAuthRoute) {
+          return PageRouteBuilder(
+            settings: const RouteSettings(name: AppRoutes.login),
+            pageBuilder: (context, _, __) => const LoginPage(),
+            transitionDuration: const Duration(milliseconds: 400),
+            reverseTransitionDuration: const Duration(milliseconds: 300),
+            transitionsBuilder: PageTransitions.defaultTransitionBuilder,
+          );
+        }
+
+        // Route Guard 2: Redirect authenticated users away from login/register to the home screen
+        if (isSignedIn && isAuthRoute) {
+          return PageRouteBuilder(
+            settings: const RouteSettings(name: AppRoutes.home),
+            pageBuilder: (context, _, __) => const AuthGate(),
+            transitionDuration: const Duration(milliseconds: 400),
+            reverseTransitionDuration: const Duration(milliseconds: 300),
+            transitionsBuilder: PageTransitions.defaultTransitionBuilder,
+          );
+        }
+
+        final builder = routeBuilders[name];
         if (builder != null) {
           return PageRouteBuilder(
             settings: settings,

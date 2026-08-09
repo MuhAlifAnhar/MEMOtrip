@@ -12,6 +12,7 @@ class CommunityReviewCard extends StatelessWidget {
   final String? avatarUrl;
   final String? photoUrl;
   final bool isOfficial;
+  final VoidCallback? onReport;
 
   const CommunityReviewCard({
     super.key,
@@ -22,6 +23,7 @@ class CommunityReviewCard extends StatelessWidget {
     this.avatarUrl,
     this.photoUrl,
     this.isOfficial = false,
+    this.onReport,
   });
 
   @override
@@ -78,7 +80,18 @@ class CommunityReviewCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (rating != null) _buildRating(),
+              if (rating != null) ...[
+                _buildRating(),
+                if (onReport != null) const SizedBox(width: 6),
+              ],
+              if (onReport != null)
+                IconButton(
+                  icon: const Icon(Icons.flag_outlined, size: 16, color: AppColors.error),
+                  onPressed: onReport,
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Laporkan ulasan',
+                ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),

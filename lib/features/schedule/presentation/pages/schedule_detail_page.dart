@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -8,17 +9,20 @@ import '../../../../core/constants/app_typography.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/placeholder_images.dart';
 import '../../../../core/widgets/app_network_image.dart';
+import '../../../destination/presentation/providers/destination_provider.dart';
 import '../../domain/entities/schedule.dart';
+import '../providers/schedule_provider.dart';
+import '../widgets/schedule_editor_dialog.dart';
 
-class ScheduleDetailPage extends StatefulWidget {
+class ScheduleDetailPage extends ConsumerStatefulWidget {
   final Schedule schedule;
   const ScheduleDetailPage({super.key, required this.schedule});
 
   @override
-  State<ScheduleDetailPage> createState() => _ScheduleDetailPageState();
+  ConsumerState<ScheduleDetailPage> createState() => _ScheduleDetailPageState();
 }
 
-class _ScheduleDetailPageState extends State<ScheduleDetailPage>
+class _ScheduleDetailPageState extends ConsumerState<ScheduleDetailPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _entranceCtrl;
   late final Animation<double> _fadeAnim;
@@ -46,6 +50,9 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage>
 
   @override
   Widget build(BuildContext context) {
+    final list = ref.watch(schedulesProvider);
+    _schedule = list.firstWhere((s) => s.id == widget.schedule.id, orElse: () => _schedule);
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
@@ -374,46 +381,33 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage>
 
   // ── Edit Dialog ──
   void _showEditDialog() {
-    final ctrl = TextEditingController(text: schedule.title);
+    final availableDestinations = ref.read(destinationsProvider);
+
     showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: EdgeInsets.only(top: AppSpacing.xl, left: AppSpacing.xl, right: AppSpacing.xl,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl),
-        decoration: const BoxDecoration(color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLarge))),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.divider, borderRadius: AppSpacing.borderRadiusFull))),
-          const SizedBox(height: AppSpacing.lg),
-          Row(children: [
-            Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: AppColors.primarySurface, borderRadius: AppSpacing.borderRadiusMedium),
-              child: const Icon(Icons.edit_rounded, color: AppColors.primary, size: 20)),
-            const SizedBox(width: AppSpacing.md),
-            Text(AppStrings.editJadwal, style: AppTypography.headlineMedium),
-          ]),
-          const SizedBox(height: AppSpacing.xl),
-          Text(AppStrings.judulJadwal, style: AppTypography.labelLarge),
-          const SizedBox(height: AppSpacing.sm),
-          TextField(controller: ctrl, style: AppTypography.bodyMedium,
-            decoration: InputDecoration(filled: true, fillColor: AppColors.background,
-              border: OutlineInputBorder(borderRadius: AppSpacing.borderRadiusMedium, borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.md))),
-          const SizedBox(height: AppSpacing.xl),
-          Row(children: [
-            Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text(AppStrings.batal))),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(child: ElevatedButton.icon(
-              onPressed: () {
-                final t = ctrl.text.trim();
-                if (t.isNotEmpty) {
-                  setState(() { _schedule = _schedule.copyWith(title: t, updatedAt: DateTime.now()); });
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppStrings.jadwalDiperbarui), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating));
-                }
-              },
-              icon: const Icon(Icons.check_rounded, size: 18), label: const Text(AppStrings.simpan))),
-          ]),
-        ]),
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ScheduleEditorDialog(
+        initialSchedule: _schedule,
+        availableDestinations: availableDestinations,
+        onSave: (title, items) {
+          final updated = _schedule.copyWith(
+            title: title,
+            items: items,
+            updatedAt: DateTime.now(),
+          );
+          ref.read(schedulesProvider.notifier).updateSchedule(updated);
+          Navigator.pop(ctx);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppStrings.jadwalDiperbarui),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: AppSpacing.borderRadiusMedium),
+            ),
+          );
+        },
       ),
     );
   }
@@ -443,7 +437,10 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage>
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppStrings.batal, style: AppTypography.labelMedium.copyWith(color: AppColors.textSecondary))),
         ElevatedButton.icon(
-          onPressed: () { Navigator.pop(ctx); Navigator.pop(context);
+          onPressed: () { 
+            ref.read(schedulesProvider.notifier).deleteSchedule(schedule.id);
+            Navigator.pop(ctx); 
+            Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppStrings.jadwalDihapus), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating));
           },
           icon: const Icon(Icons.delete_forever_rounded, size: 18), label: const Text(AppStrings.hapus),

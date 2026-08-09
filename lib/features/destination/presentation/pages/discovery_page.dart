@@ -95,11 +95,13 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage>
     _autoScrollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted || _recommended.isEmpty) return;
       final next = (_currentCarouselPage + 1) % _recommended.length;
-      _carouselController.animateToPage(
-        next,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+      if (_carouselController.hasClients) {
+        _carouselController.animateToPage(
+          next,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 

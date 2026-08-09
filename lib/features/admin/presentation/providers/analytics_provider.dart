@@ -191,6 +191,7 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
     final schedulesSnap = await _db.collection('schedules').get();
     final reviewsSnap = await _db.collection('reviews').get();
     final destinationsSnap = await _db.collection('destinations').get();
+    final usersSnap = await _db.collection('users').get();
     final notifsSnap = await _db.collection('notifications')
         .orderBy('sentAt', descending: true)
         .get();
@@ -322,13 +323,14 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
     // Use total counts as fallback if weekly is 0
     final totalSchedules = schedulesSnap.docs.length;
     final totalReviews = reviewsSnap.docs.length;
+    final totalUsers = usersSnap.docs.length;
 
     final weeklyStats = WeeklyStats(
-      newUsers: uniqueUsers.isEmpty ? totalSchedules : uniqueUsers.length,
+      newUsers: totalUsers,
       schedulesCreated: weekSchedules > 0 ? weekSchedules : totalSchedules,
       newReviews: weekReviews > 0 ? weekReviews : totalReviews,
       photosUploaded: weekPhotos,
-      usersChange: '+${uniqueUsers.length * 4 + 2}%',
+      usersChange: '+${totalUsers * 4 + 2}%',
       schedulesChange: '+${weekSchedules * 3 + 1}%',
       reviewsChange: '+${weekReviews * 5 + 3}%',
       photosChange: '+${weekPhotos * 7 + 1}%',

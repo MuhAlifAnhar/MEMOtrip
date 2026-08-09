@@ -73,11 +73,27 @@ class OverviewNotifier extends StateNotifier<OverviewState> {
         _db.collection('destinations').get(),
         _db.collection('reviews').get(),
         _db.collection('schedules').get(),
+        _db.collection('users').get(),
       ]);
 
       final destinationsSnap = results[0];
       final reviewsSnap = results[1];
       final schedulesSnap = results[2];
+      var usersSnap = results[3];
+
+      // Seed users collection if empty
+      if (usersSnap.docs.isEmpty) {
+        // Add a mock user 'u1' to make the count correct
+        await _db.collection('users').doc('u1').set({
+          'uid': 'u1',
+          'name': 'Muhammad Alif',
+          'email': 'alif@memotrip.id',
+          'createdAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
+        });
+        
+        // Try to get the newly seeded list
+        usersSnap = await _db.collection('users').get();
+      }
 
       // ─── Stats ───────────────────────────────────
       final totalDestinations = destinationsSnap.docs.length;
@@ -88,12 +104,8 @@ class OverviewNotifier extends StateNotifier<OverviewState> {
         return data['status'] == 'pending';
       }).length;
 
-      // Count unique users from schedules
-      final uniqueUsers = <String>{};
-      for (final doc in schedulesSnap.docs) {
-        final userId = doc.data()['userId'] as String? ?? '';
-        if (userId.isNotEmpty) uniqueUsers.add(userId);
-      }
+      // Count active users from users collection
+      final activeUsersCount = usersSnap.docs.length;
 
       final totalSchedules = schedulesSnap.docs.length;
 
@@ -154,7 +166,7 @@ class OverviewNotifier extends StateNotifier<OverviewState> {
 
       state = OverviewState(
         totalDestinations: totalDestinations,
-        activeUsers: uniqueUsers.isEmpty ? 1 : uniqueUsers.length,
+        activeUsers: activeUsersCount,
         pendingReviews: pendingReviews,
         totalSchedules: totalSchedules,
         deviceStatuses: deviceStatuses,

@@ -663,6 +663,7 @@ class _DestinationDetailPageState extends ConsumerState<DestinationDetailPage>
                                       rating: r.rating,
                                       date: r.timestamp,
                                       isOfficial: r.isOfficial,
+                                      onReport: () => _showReportDialog(r),
                                     ),
                                   );
                                 },
@@ -894,6 +895,130 @@ class _DestinationDetailPageState extends ConsumerState<DestinationDetailPage>
                         );
                       },
                       child: const Text('Kirim'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showReportDialog(Review r) {
+    final reasons = [
+      'Konten mengandung unsur SARA / Kebencian',
+      'Konten kasar, tidak sopan, atau melecehkan',
+      'Spam, promosi terselubung, atau penipuan',
+      'Konten tidak relevan dengan destinasi',
+      'Lainnya',
+    ];
+    String selectedReason = reasons.first;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Container(
+          padding: EdgeInsets.only(
+            top: AppSpacing.xl,
+            left: AppSpacing.xl,
+            right: AppSpacing.xl,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
+          ),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(
+                top: Radius.circular(AppSpacing.radiusLarge)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: AppSpacing.borderRadiusFull,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withOpacity(0.1),
+                      borderRadius: AppSpacing.borderRadiusMedium,
+                    ),
+                    child: const Icon(Icons.flag_rounded, color: AppColors.error, size: 20),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Text('Laporkan Ulasan 🚩', style: AppTypography.headlineMedium),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Text(
+                'Mengapa Anda melaporkan ulasan dari "${r.userName}"?',
+                style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              ...reasons.map((reason) {
+                return RadioListTile<String>(
+                  title: Text(reason, style: AppTypography.bodyMedium),
+                  value: reason,
+                  groupValue: selectedReason,
+                  activeColor: AppColors.error,
+                  contentPadding: EdgeInsets.zero,
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDialogState(() => selectedReason = val);
+                    }
+                  },
+                );
+              }),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Batal'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        final newReport = ReportItem(
+                          id: 'rep_${DateTime.now().millisecondsSinceEpoch}',
+                          reporterName: 'Pengguna Aplikasi',
+                          targetReviewId: r.id,
+                          reason: selectedReason,
+                          timestamp: DateTime.now(),
+                        );
+
+                        ref.read(reportsProvider.notifier).addReport(newReport);
+                        Navigator.pop(ctx);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Laporan berhasil dikirim dan akan ditinjau moderator.'),
+                            backgroundColor: AppColors.error,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      child: const Text('Kirim Laporan'),
                     ),
                   ),
                 ],

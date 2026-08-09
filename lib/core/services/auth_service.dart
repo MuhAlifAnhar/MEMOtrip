@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Authentication Service — wraps Firebase Auth for clean architecture.
 ///
@@ -49,6 +50,17 @@ class AuthService {
     // Set display name
     await credential.user?.updateDisplayName(name.trim());
     await credential.user?.reload();
+
+    // Create user document in Cloud Firestore
+    final user = credential.user;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'name': name.trim(),
+        'email': email.trim(),
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+    }
 
     return credential;
   }
