@@ -8,31 +8,73 @@ import '../../../../core/services/auth_service.dart';
 import '../../../../core/widgets/shake_widget.dart';
 
 // ═════════════════════════════════════════════════════════════
-//  Shared Error-Input Theme
+//  Custom Wave Clipper for Bottom Wave
+// ═════════════════════════════════════════════════════════════
+class BottomWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 120);
+
+    final firstControlPoint = Offset(size.width * 0.5, size.height - 185);
+    final firstEndPoint = Offset(size.width, size.height - 100);
+
+    path.quadraticBezierTo(
+      firstControlPoint.dx,
+      firstControlPoint.dy,
+      firstEndPoint.dx,
+      firstEndPoint.dy,
+    );
+
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+// ═════════════════════════════════════════════════════════════
+//  Shared Outlined Border Input Theme
 // ═════════════════════════════════════════════════════════════
 InputDecoration _inputDeco({
-  required String hint,
-  required IconData prefixIcon,
+  required String labelText,
   Widget? suffixIcon,
 }) {
   return InputDecoration(
-    hintText: hint,
-    prefixIcon: Icon(prefixIcon, size: 20),
+    labelText: labelText,
+    labelStyle:
+        AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
     suffixIcon: suffixIcon,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey[300]!),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey[300]!),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Color(0xFF3F64D4), width: 1.5),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: AppColors.error, width: 2),
+    ),
     errorStyle: AppTypography.caption.copyWith(
       color: AppColors.error,
       fontWeight: FontWeight.w500,
       fontSize: 11,
     ),
     errorMaxLines: 2,
-    errorBorder: OutlineInputBorder(
-      borderRadius: AppSpacing.borderRadiusMedium,
-      borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-    ),
-    focusedErrorBorder: OutlineInputBorder(
-      borderRadius: AppSpacing.borderRadiusMedium,
-      borderSide: const BorderSide(color: AppColors.error, width: 2),
-    ),
   );
 }
 
@@ -55,7 +97,7 @@ class _LoginPageState extends State<LoginPage>
   final _btnShake = GlobalKey<ShakeWidgetState>();
   bool _obscure = true;
   bool _loading = false;
-  bool _submitted = false; // tracks whether submit was attempted
+  bool _submitted = false;
 
   late AnimationController _animCtrl;
   late Animation<double> _fadeAnim;
@@ -82,182 +124,368 @@ class _LoginPageState extends State<LoginPage>
     super.dispose();
   }
 
+  Widget _buildSocialButton(
+      {required Widget child, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!, width: 1.5),
+        ),
+        alignment: Alignment.center,
+        child: child,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: FadeTransition(
-                opacity: _fadeAnim,
-                child: SlideTransition(
-                  position: _slideAnim,
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.xxl),
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: AppSpacing.borderRadiusCard,
-                        boxShadow: AppColors.elevatedShadow),
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          // ─── Background Decorative Shapes ───────────────────
+          // Top Right Circle
+          Positioned(
+            top: -120,
+            right: -80,
+            child: Container(
+              width: 260,
+              height: 260,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8EAF6).withOpacity(0.6),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // Middle Left Circle
+          Positioned(
+            left: -100,
+            top: size.height * 0.35,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8EAF6).withOpacity(0.6),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // Bottom Right Circle
+          Positioned(
+            right: -100,
+            bottom: size.height * 0.15,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8EAF6).withOpacity(0.6),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // Bottom Wave Curve
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 250,
+            child: ClipPath(
+              clipper: BottomWaveClipper(),
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFF3F64D4),
+                      Color(0xFF1E3A8A),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // ─── Main Form Content ──────────────────────────────
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                child: FadeTransition(
+                  opacity: _fadeAnim,
+                  child: SlideTransition(
+                    position: _slideAnim,
                     child: Form(
                       key: _formKey,
                       autovalidateMode: _submitted
                           ? AutovalidateMode.onUserInteraction
                           : AutovalidateMode.disabled,
                       child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Logo
-                            TweenAnimationBuilder<double>(
-                              tween: Tween(begin: 0.0, end: 1.0),
-                              duration: const Duration(milliseconds: 700),
-                              curve: Curves.easeOutBack,
-                              builder: (_, v, child) => Transform.scale(
-                                  scale: 0.5 + 0.5 * v,
-                                  child: Opacity(opacity: v.clamp(0.0, 1.0), child: child)),
-                              child: Container(
-                                padding: const EdgeInsets.all(AppSpacing.base),
-                                decoration: const BoxDecoration(
-                                    color: AppColors.primarySurface,
-                                    shape: BoxShape.circle),
-                                child: const Icon(Icons.travel_explore_rounded,
-                                    color: AppColors.primary, size: 40),
-                              ),
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Mascot Logo
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0.0, end: 1.0),
+                            duration: const Duration(milliseconds: 700),
+                            curve: Curves.easeOutBack,
+                            builder: (_, v, child) => Transform.scale(
+                              scale: 0.5 + 0.5 * v,
+                              child: Opacity(
+                                  opacity: v.clamp(0.0, 1.0), child: child),
                             ),
-                            const SizedBox(height: AppSpacing.base),
-                            _stagger(0, Text(AppStrings.appName,
-                                style: AppTypography.displayMedium
-                                    .copyWith(color: AppColors.primary))),
-                            _stagger(0, Text(AppStrings.appTagline,
-                                style: AppTypography.caption)),
-                            const SizedBox(height: AppSpacing.xxl),
+                            child: Image.asset(
+                              'assets/images/logo_memotrip.png',
+                              height: 160,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
 
-                            // Email
-                            _stagger(1, ShakeWidget(
-                              key: _emailShake,
-                              child: TextFormField(
-                                controller: _emailCtrl,
-                                keyboardType: TextInputType.emailAddress,
-                                style: AppTypography.bodyMedium,
-                                validator: _validateEmail,
-                                decoration: _inputDeco(
-                                  hint: 'Email',
-                                  prefixIcon: Icons.email_outlined,
+                          // Email field
+                          _stagger(
+                              1,
+                              ShakeWidget(
+                                key: _emailShake,
+                                child: TextFormField(
+                                  controller: _emailCtrl,
+                                  keyboardType: TextInputType.emailAddress,
+                                  style: AppTypography.bodyMedium,
+                                  validator: _validateEmail,
+                                  decoration: _inputDeco(labelText: 'Email'),
                                 ),
-                              ),
-                            )),
-                            const SizedBox(height: AppSpacing.base),
+                              )),
+                          const SizedBox(height: 16),
 
-                            // Password
-                            _stagger(2, ShakeWidget(
-                              key: _passShake,
-                              child: TextFormField(
-                                controller: _passCtrl,
-                                obscureText: _obscure,
-                                style: AppTypography.bodyMedium,
-                                validator: _validatePassword,
-                                decoration: _inputDeco(
-                                  hint: 'Password',
-                                  prefixIcon: Icons.lock_outline_rounded,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscure
-                                          ? Icons.visibility_off_rounded
-                                          : Icons.visibility_rounded,
-                                      size: 20),
-                                    onPressed: () =>
-                                        setState(() => _obscure = !_obscure),
+                          // Password field
+                          _stagger(
+                              2,
+                              ShakeWidget(
+                                key: _passShake,
+                                child: TextFormField(
+                                  controller: _passCtrl,
+                                  obscureText: _obscure,
+                                  style: AppTypography.bodyMedium,
+                                  validator: _validatePassword,
+                                  decoration: _inputDeco(
+                                    labelText: 'Password',
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscure
+                                            ? Icons.visibility_off_rounded
+                                            : Icons.visibility_rounded,
+                                        size: 20,
+                                        color: Colors.grey[600],
+                                      ),
+                                      onPressed: () =>
+                                          setState(() => _obscure = !_obscure),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )),
-                            const SizedBox(height: AppSpacing.sm),
+                              )),
+                          const SizedBox(height: 16),
 
-                            _stagger(3, Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: _forgotPassword,
-                                child: Text('Lupa Password?',
-                                    style: AppTypography.labelSmall
-                                        .copyWith(color: AppColors.primary)),
-                              ),
-                            )),
-                            const SizedBox(height: AppSpacing.base),
+                          // Consent Text
+                          _stagger(
+                              3,
+                              RichText(
+                                textAlign: TextAlign.center,
+                                text: TextSpan(
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                  children: const [
+                                    TextSpan(
+                                      text:
+                                          'Dengan melanjutkan, Anda memberikan izin untuk penggunaan data sesuai ',
+                                    ),
+                                    TextSpan(
+                                      text: 'kebijakan kami.',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )),
+                          const SizedBox(height: 24),
 
-                            // Login Button (with shake)
-                            _stagger(4, ShakeWidget(
-                              key: _btnShake,
-                              child: SizedBox(
-                                width: double.infinity,
-                                height: 48,
-                                child: ElevatedButton(
-                                  onPressed: _loading ? null : _login,
-                                  child: AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 250),
-                                    child: _loading
-                                        ? const SizedBox(
-                                            key: ValueKey('l'),
-                                            width: 20, height: 20,
-                                            child: CircularProgressIndicator(
+                          // Login Button
+                          _stagger(
+                              4,
+                              ShakeWidget(
+                                key: _btnShake,
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  height: 52,
+                                  child: ElevatedButton(
+                                    onPressed: _loading ? null : _login,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF3F64D4),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(28),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: AnimatedSwitcher(
+                                      duration:
+                                          const Duration(milliseconds: 250),
+                                      child: _loading
+                                          ? const SizedBox(
+                                              key: ValueKey('l'),
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
                                                 strokeWidth: 2,
-                                                color: Colors.white))
-                                        : const Text('Masuk',
-                                            key: ValueKey('t')),
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : const Text(
+                                              'Login',
+                                              key: ValueKey('t'),
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )),
-                            const SizedBox(height: AppSpacing.lg),
+                              )),
+                          const SizedBox(height: 24),
 
-                            // Divider
-                            _stagger(5, Row(children: [
-                              const Expanded(child: Divider()),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                child: Text('atau', style: AppTypography.caption),
-                              ),
-                              const Expanded(child: Divider()),
-                            ])),
-                            const SizedBox(height: AppSpacing.lg),
-
-                            // Google
-                            _stagger(6, SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: OutlinedButton.icon(
-                                onPressed: () => _showSnackbar(
-                                    'Google Sign-In — Segera hadir!',
-                                    AppColors.warning),
-                                icon: const Icon(Icons.g_mobiledata_rounded, size: 24),
-                                label: const Text('Masuk dengan Google'),
-                              ),
-                            )),
-                            const SizedBox(height: AppSpacing.xl),
-
-                            // Register Link
-                            _stagger(7, Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('Belum punya akun? ',
-                                    style: AppTypography.bodySmall),
-                                GestureDetector(
-                                  onTap: () => Navigator.pushNamed(context, '/register'),
-                                  child: Text('Daftar',
-                                      style: AppTypography.labelMedium
-                                          .copyWith(color: AppColors.primary)),
+                          // "Sign in with" header
+                          _stagger(
+                              5,
+                              Text(
+                                'Sign in with',
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
                                 ),
-                              ],
-                            )),
-                          ]),
+                              )),
+                          const SizedBox(height: 16),
+
+                          // Social logins
+                          _stagger(
+                              6,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildSocialButton(
+                                    child: const Icon(Icons.facebook,
+                                        color: Color(0xFF1877F2), size: 28),
+                                    onTap: () => _showSnackbar(
+                                      'Facebook Sign-In — Segera hadir!',
+                                      AppColors.warning,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _buildSocialButton(
+                                    child: ShaderMask(
+                                      shaderCallback: (bounds) =>
+                                          const LinearGradient(
+                                        colors: [
+                                          Colors.blue,
+                                          Colors.red,
+                                          Colors.yellow,
+                                          Colors.green
+                                        ],
+                                        stops: [0.0, 0.3, 0.6, 1.0],
+                                      ).createShader(bounds),
+                                      child: const Text(
+                                        'G',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 24,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    onTap: () => _showSnackbar(
+                                      'Google Sign-In — Segera hadir!',
+                                      AppColors.warning,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _buildSocialButton(
+                                    child: const Icon(Icons.apple,
+                                        color: Colors.black, size: 28),
+                                    onTap: () => _showSnackbar(
+                                      'Apple Sign-In — Segera hadir!',
+                                      AppColors.warning,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _buildSocialButton(
+                                    child: Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF0077B5),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: const Text(
+                                        'in',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          fontFamily: 'Arial',
+                                        ),
+                                      ),
+                                    ),
+                                    onTap: () => _showSnackbar(
+                                      'LinkedIn Sign-In — Segera hadir!',
+                                      AppColors.warning,
+                                    ),
+                                  ),
+                                ],
+                              )),
+                          const SizedBox(height: 24),
+
+                          // Don't have an account? Sign Up
+                          _stagger(
+                              7,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "Don't have an account? ",
+                                    style: AppTypography.bodySmall.copyWith(
+                                        color: AppColors.textSecondary),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => Navigator.pushNamed(
+                                        context, '/register'),
+                                    child: Text(
+                                      'Sign Up',
+                                      style: AppTypography.labelMedium.copyWith(
+                                        color: const Color(0xFF1E3A8A),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -296,7 +524,6 @@ class _LoginPageState extends State<LoginPage>
 
     final isValid = _formKey.currentState!.validate();
     if (!isValid) {
-      // Shake invalid fields
       if (_validateEmail(_emailCtrl.text) != null) {
         _emailShake.currentState?.shake();
       }
@@ -328,9 +555,11 @@ class _LoginPageState extends State<LoginPage>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusCard),
+        shape:
+            RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusCard),
         title: Row(children: [
-          const Icon(Icons.lock_reset_rounded, color: AppColors.primary, size: 22),
+          const Icon(Icons.lock_reset_rounded,
+              color: AppColors.primary, size: 22),
           const SizedBox(width: 8),
           Text('Reset Password', style: AppTypography.headlineSmall),
         ]),
@@ -370,7 +599,8 @@ class _LoginPageState extends State<LoginPage>
                   }
                 } on FirebaseAuthException catch (e) {
                   if (mounted) {
-                    _showSnackbar(AuthService.friendlyError(e), AppColors.error);
+                    _showSnackbar(
+                        AuthService.friendlyError(e), AppColors.error);
                   }
                 }
               }
@@ -388,7 +618,8 @@ class _LoginPageState extends State<LoginPage>
       content: Text(msg),
       backgroundColor: c,
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusMedium),
+      shape:
+          RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusMedium),
       margin: const EdgeInsets.all(AppSpacing.lg),
       duration: const Duration(seconds: 3),
     ));
@@ -450,192 +681,295 @@ class _RegisterPageState extends State<RegisterPage>
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: FadeTransition(
-                opacity: _fadeAnim,
-                child: SlideTransition(
-                  position: _slideAnim,
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.xxl),
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: AppSpacing.borderRadiusCard,
-                        boxShadow: AppColors.elevatedShadow),
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          // ─── Background Decorative Shapes ───────────────────
+          // Top Right Circle
+          Positioned(
+            top: -120,
+            right: -80,
+            child: Container(
+              width: 260,
+              height: 260,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8EAF6).withOpacity(0.6),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // Middle Left Circle
+          Positioned(
+            left: -100,
+            top: size.height * 0.35,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8EAF6).withOpacity(0.6),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // Bottom Right Circle
+          Positioned(
+            right: -100,
+            bottom: size.height * 0.15,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8EAF6).withOpacity(0.6),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // Bottom Wave Curve
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 250,
+            child: ClipPath(
+              clipper: BottomWaveClipper(),
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFF3F64D4),
+                      Color(0xFF1E3A8A),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // ─── Main Form Content ──────────────────────────────
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                child: FadeTransition(
+                  opacity: _fadeAnim,
+                  child: SlideTransition(
+                    position: _slideAnim,
                     child: Form(
                       key: _formKey,
                       autovalidateMode: _submitted
                           ? AutovalidateMode.onUserInteraction
                           : AutovalidateMode.disabled,
                       child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Logo
-                            TweenAnimationBuilder<double>(
-                              tween: Tween(begin: 0.0, end: 1.0),
-                              duration: const Duration(milliseconds: 700),
-                              curve: Curves.easeOutBack,
-                              builder: (_, v, child) => Transform.scale(
-                                  scale: 0.5 + 0.5 * v,
-                                  child: Opacity(opacity: v.clamp(0.0, 1.0), child: child)),
-                              child: Container(
-                                padding: const EdgeInsets.all(AppSpacing.base),
-                                decoration: const BoxDecoration(
-                                    color: AppColors.primarySurface,
-                                    shape: BoxShape.circle),
-                                child: const Icon(Icons.person_add_rounded,
-                                    color: AppColors.primary, size: 36),
-                              ),
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Mascot Logo
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0.0, end: 1.0),
+                            duration: const Duration(milliseconds: 700),
+                            curve: Curves.easeOutBack,
+                            builder: (_, v, child) => Transform.scale(
+                              scale: 0.5 + 0.5 * v,
+                              child: Opacity(
+                                  opacity: v.clamp(0.0, 1.0), child: child),
                             ),
-                            const SizedBox(height: AppSpacing.base),
-                            _stagger(0, Text('Daftar Akun',
-                                style: AppTypography.displaySmall
-                                    .copyWith(color: AppColors.primary))),
-                            const SizedBox(height: AppSpacing.sm),
-                            _stagger(0, Text('Buat akun MEMOtrip baru',
-                                style: AppTypography.caption)),
-                            const SizedBox(height: AppSpacing.xxl),
+                            child: Image.asset(
+                              'assets/images/logo_memotrip.png',
+                              height: 140,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
 
-                            // Name
-                            _stagger(1, ShakeWidget(
-                              key: _nameShake,
-                              child: TextFormField(
-                                controller: _nameCtrl,
-                                style: AppTypography.bodyMedium,
-                                validator: (v) => v == null || v.trim().isEmpty
-                                    ? 'Nama wajib diisi' : null,
-                                decoration: _inputDeco(
-                                  hint: 'Nama Lengkap',
-                                  prefixIcon: Icons.person_outline_rounded,
+                          // Title
+                          // _stagger(0, Text(
+                          //   'Sign Up',
+                          //   style: AppTypography.headlineLarge.copyWith(
+                          //     color: const Color(0xFF1E3A8A),
+                          //     fontSize: 28,
+                          //     fontWeight: FontWeight.bold,
+                          //   ),
+                          // )),
+                          // const SizedBox(height: 24),
+
+                          // Name field
+                          _stagger(
+                              1,
+                              ShakeWidget(
+                                key: _nameShake,
+                                child: TextFormField(
+                                  controller: _nameCtrl,
+                                  style: AppTypography.bodyMedium,
+                                  validator: (v) =>
+                                      v == null || v.trim().isEmpty
+                                          ? 'Nama wajib diisi'
+                                          : null,
+                                  decoration:
+                                      _inputDeco(labelText: 'Nama Lengkap'),
                                 ),
-                              ),
-                            )),
-                            const SizedBox(height: AppSpacing.base),
+                              )),
+                          const SizedBox(height: 16),
 
-                            // Email
-                            _stagger(2, ShakeWidget(
-                              key: _emailShake,
-                              child: TextFormField(
-                                controller: _emailCtrl,
-                                keyboardType: TextInputType.emailAddress,
-                                style: AppTypography.bodyMedium,
-                                validator: _validateEmail,
-                                decoration: _inputDeco(
-                                  hint: 'Email',
-                                  prefixIcon: Icons.email_outlined,
+                          // Email field
+                          _stagger(
+                              2,
+                              ShakeWidget(
+                                key: _emailShake,
+                                child: TextFormField(
+                                  controller: _emailCtrl,
+                                  keyboardType: TextInputType.emailAddress,
+                                  style: AppTypography.bodyMedium,
+                                  validator: _validateEmail,
+                                  decoration: _inputDeco(labelText: 'Email'),
                                 ),
-                              ),
-                            )),
-                            const SizedBox(height: AppSpacing.base),
+                              )),
+                          const SizedBox(height: 16),
 
-                            // Password
-                            _stagger(3, ShakeWidget(
-                              key: _passShake,
-                              child: TextFormField(
-                                controller: _passCtrl,
-                                obscureText: _obscure,
-                                style: AppTypography.bodyMedium,
-                                validator: _validatePassword,
-                                decoration: _inputDeco(
-                                  hint: 'Password',
-                                  prefixIcon: Icons.lock_outline_rounded,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscure ? Icons.visibility_off_rounded
-                                          : Icons.visibility_rounded, size: 20),
-                                    onPressed: () =>
-                                        setState(() => _obscure = !_obscure),
+                          // Password field
+                          _stagger(
+                              3,
+                              ShakeWidget(
+                                key: _passShake,
+                                child: TextFormField(
+                                  controller: _passCtrl,
+                                  obscureText: _obscure,
+                                  style: AppTypography.bodyMedium,
+                                  validator: _validatePassword,
+                                  decoration: _inputDeco(
+                                    labelText: 'Password',
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscure
+                                            ? Icons.visibility_off_rounded
+                                            : Icons.visibility_rounded,
+                                        size: 20,
+                                        color: Colors.grey[600],
+                                      ),
+                                      onPressed: () =>
+                                          setState(() => _obscure = !_obscure),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )),
-                            const SizedBox(height: AppSpacing.base),
+                              )),
+                          const SizedBox(height: 16),
 
-                            // Confirm Password
-                            _stagger(4, ShakeWidget(
-                              key: _confirmShake,
-                              child: TextFormField(
-                                controller: _confirmCtrl,
-                                obscureText: _obscureConfirm,
-                                style: AppTypography.bodyMedium,
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) {
-                                    return 'Konfirmasi password wajib diisi';
-                                  }
-                                  if (v != _passCtrl.text) {
-                                    return 'Password tidak sama';
-                                  }
-                                  return null;
-                                },
-                                decoration: _inputDeco(
-                                  hint: 'Konfirmasi Password',
-                                  prefixIcon: Icons.lock_rounded,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscureConfirm
-                                          ? Icons.visibility_off_rounded
-                                          : Icons.visibility_rounded,
-                                      size: 20),
-                                    onPressed: () => setState(
-                                        () => _obscureConfirm = !_obscureConfirm),
+                          // Confirm Password field
+                          _stagger(
+                              4,
+                              ShakeWidget(
+                                key: _confirmShake,
+                                child: TextFormField(
+                                  controller: _confirmCtrl,
+                                  obscureText: _obscureConfirm,
+                                  style: AppTypography.bodyMedium,
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty) {
+                                      return 'Konfirmasi password wajib diisi';
+                                    }
+                                    if (v != _passCtrl.text) {
+                                      return 'Password tidak sama';
+                                    }
+                                    return null;
+                                  },
+                                  decoration: _inputDeco(
+                                    labelText: 'Konfirmasi Password',
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscureConfirm
+                                            ? Icons.visibility_off_rounded
+                                            : Icons.visibility_rounded,
+                                        size: 20,
+                                        color: Colors.grey[600],
+                                      ),
+                                      onPressed: () => setState(() =>
+                                          _obscureConfirm = !_obscureConfirm),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )),
-                            const SizedBox(height: AppSpacing.xl),
+                              )),
+                          const SizedBox(height: 24),
 
-                            // Register Button (with shake)
-                            _stagger(5, ShakeWidget(
-                              key: _btnShake,
-                              child: SizedBox(
-                                width: double.infinity,
-                                height: 48,
-                                child: ElevatedButton(
-                                  onPressed: _loading ? null : _register,
-                                  child: AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 250),
-                                    child: _loading
-                                        ? const SizedBox(
-                                            key: ValueKey('l'),
-                                            width: 20, height: 20,
-                                            child: CircularProgressIndicator(
+                          // Register Button
+                          _stagger(
+                              5,
+                              ShakeWidget(
+                                key: _btnShake,
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  height: 52,
+                                  child: ElevatedButton(
+                                    onPressed: _loading ? null : _register,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF3F64D4),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(28),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: AnimatedSwitcher(
+                                      duration:
+                                          const Duration(milliseconds: 250),
+                                      child: _loading
+                                          ? const SizedBox(
+                                              key: ValueKey('l'),
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
                                                 strokeWidth: 2,
-                                                color: Colors.white))
-                                        : const Text('Daftar',
-                                            key: ValueKey('t')),
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : const Text(
+                                              'Daftar',
+                                              key: ValueKey('t'),
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )),
-                            const SizedBox(height: AppSpacing.lg),
+                              )),
+                          const SizedBox(height: 24),
 
-                            // Login Link
-                            _stagger(6, Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('Sudah punya akun? ',
-                                    style: AppTypography.bodySmall),
-                                GestureDetector(
-                                  onTap: () => Navigator.pop(context),
-                                  child: Text('Masuk',
-                                      style: AppTypography.labelMedium
-                                          .copyWith(color: AppColors.primary)),
-                                ),
-                              ],
-                            )),
-                          ]),
+                          // Already have an account? Login
+                          _stagger(
+                              6,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Sudah punya akun? ',
+                                    style: AppTypography.bodySmall.copyWith(
+                                        color: AppColors.textSecondary),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => Navigator.pop(context),
+                                    child: Text(
+                                      'Masuk',
+                                      style: AppTypography.labelMedium.copyWith(
+                                        color: const Color(0xFF1E3A8A),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -674,10 +1008,11 @@ class _RegisterPageState extends State<RegisterPage>
 
     final isValid = _formKey.currentState!.validate();
     if (!isValid) {
-      // Shake each invalid field
       if (_nameCtrl.text.trim().isEmpty) _nameShake.currentState?.shake();
-      if (_validateEmail(_emailCtrl.text) != null) _emailShake.currentState?.shake();
-      if (_validatePassword(_passCtrl.text) != null) _passShake.currentState?.shake();
+      if (_validateEmail(_emailCtrl.text) != null)
+        _emailShake.currentState?.shake();
+      if (_validatePassword(_passCtrl.text) != null)
+        _passShake.currentState?.shake();
       if (_confirmCtrl.text.isEmpty || _confirmCtrl.text != _passCtrl.text) {
         _confirmShake.currentState?.shake();
       }
@@ -708,7 +1043,8 @@ class _RegisterPageState extends State<RegisterPage>
       content: Text(msg),
       backgroundColor: c,
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusMedium),
+      shape:
+          RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusMedium),
       margin: const EdgeInsets.all(AppSpacing.lg),
       duration: const Duration(seconds: 3),
     ));
