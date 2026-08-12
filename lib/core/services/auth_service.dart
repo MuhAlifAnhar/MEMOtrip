@@ -1,5 +1,7 @@
+import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 /// Authentication Service — wraps Firebase Auth for clean architecture.
 ///
@@ -63,6 +65,26 @@ class AuthService {
     }
 
     return credential;
+  }
+
+  // ─── Image Upload ─────────────────────────────────────
+  /// Uploads profile picture bytes to Firebase Storage and returns the download URL.
+  static Future<String> uploadProfilePicture({
+    required String userId,
+    required Uint8List bytes,
+    required String extension,
+  }) async {
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('profile_pictures')
+        .child('$userId.$extension');
+
+    final uploadTask = ref.putData(
+      bytes,
+      SettableMetadata(contentType: 'image/$extension'),
+    );
+    final snapshot = await uploadTask;
+    return await snapshot.ref.getDownloadURL();
   }
 
   // ─── Update Profile ───────────────────────────────────

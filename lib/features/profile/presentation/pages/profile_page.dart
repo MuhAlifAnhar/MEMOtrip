@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -58,6 +60,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authUserProvider).value;
+    final userDoc = ref.watch(userDocProvider).value;
+    final displayName = userDoc?['name'] ?? currentUser?.displayName ?? 'Traveler';
+    final photoURL = userDoc?['photoUrl'] ?? currentUser?.photoURL ?? PlaceholderImages.avatar();
     final currentUserId = currentUser?.uid ?? 'u1';
 
     final totalVisits = ref.watch(visitsProvider).where((v) => v.userId == currentUserId || v.userId == 'u1' || v.userId.isEmpty).length;
@@ -96,9 +101,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                 radius: 32,
                                 backgroundColor: AppColors.primarySurface,
                                 backgroundImage: CachedNetworkImageProvider(
-                                  (currentUser?.photoURL != null && currentUser!.photoURL!.isNotEmpty)
-                                      ? currentUser.photoURL!
-                                      : PlaceholderImages.avatar(),
+                                  photoURL.isNotEmpty ? photoURL : PlaceholderImages.avatar(),
                                 ),
                                 child: null),
                           ),
@@ -108,21 +111,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                   crossAxisAlignment:
                                       CrossAxisAlignment.start,
                                   children: [
-                                Text(currentUser?.displayName ?? 'Traveler',
+                                Text(displayName,
                                     style: AppTypography.headlineLarge),
                                 Text(currentUser?.email ?? 'traveler@memotrip.id',
                                     style: AppTypography.bodySmall),
                               ])),
-                          GestureDetector(
-                            onTap: () => _showEditProfileDialog(context),
-                            child: Container(
-                              padding: const EdgeInsets.all(AppSpacing.sm),
-                              decoration: BoxDecoration(
-                                  color: AppColors.cardBackground,
-                                  shape: BoxShape.circle,
-                                  boxShadow: AppColors.cardShadow),
-                              child: const Icon(Icons.edit_rounded,
+                          Container(
+                            decoration: BoxDecoration(
+                                color: AppColors.cardBackground,
+                                shape: BoxShape.circle,
+                                boxShadow: AppColors.cardShadow),
+                            child: IconButton(
+                              icon: const Icon(Icons.edit_rounded,
                                   color: AppColors.primary, size: 20),
+                              onPressed: () => _showEditProfileDialog(context),
+                              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                              padding: EdgeInsets.zero,
+                              splashRadius: 20,
+                              tooltip: 'Ubah Profil',
                             ),
                           ),
                         ]),
@@ -354,7 +360,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   void _showEditProfileDialog(BuildContext context) {
     final currentUser = ref.read(authUserProvider).value;
     final nameController = TextEditingController(text: currentUser?.displayName ?? '');
-    final photoUrlController = TextEditingController(text: currentUser?.photoURL ?? '');
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -362,6 +367,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       barrierDismissible: false,
       builder: (ctx) {
         bool isLoading = false;
+        XFile? pickedFile;
+        Uint8List? pickedBytes;
+        String? pickedExtension;
+
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
@@ -374,6 +383,125 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Avatar Preview & Upload Trigger
+                      Center(
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 90,
+                              height: 90,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.primarySurface,
+                                border: Border.all(color: AppColors.primary, width: 2),
+                                boxShadow: AppColors.cardShadow,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(45),
+                                child: pickedBytes != null
+                                    ? Image.memory(pickedBytes!, fit: BoxFit.cover)
+                                    : (currentUser?.photoURL != null && currentUser!.photoURL!.isNotEmpty)
+                                        ? CachedNetworkImage(
+                                            imageUrl: currentUser.photoURL!,
+                                            fit: BoxFit.cover,
+                                            placeholder: (context, url) => const Center(
+                                                child: SizedBox(
+                                                    width: 20,
+                                                    height: 20,
+                                                    child: CircularProgressIndicator(strokeWidth: 2))),
+                                            errorWidget: (context, url, error) => Image.network(PlaceholderImages.avatar()),
+                                          )
+                                        : Image.network(PlaceholderImages.avatar()),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppColors.cardBackground, width: 2),
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+                                  padding: EdgeInsets.zero,
+                                  onPressed: isLoading
+                                      ? null
+                                      : () async {
+                                          try {
+                                            final picker = ImagePicker();
+                                            final file = await picker.pickImage(
+                                              source: ImageSource.gallery,
+                                              imageQuality: 80,
+                                            );
+                                            if (file != null) {
+                                              final bytes = await file.readAsBytes();
+                                              final ext = file.name.split('.').last.toLowerCase();
+                                              setState(() {
+                                                pickedFile = file;
+                                                pickedBytes = bytes;
+                                                pickedExtension = ext.isEmpty ? 'jpg' : ext;
+                                              });
+                                            }
+                                          } catch (e) {
+                                            debugPrint('Error picking image: $e');
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Gagal memilih gambar: $e'),
+                                                  backgroundColor: AppColors.error,
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      TextButton(
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                try {
+                                  final picker = ImagePicker();
+                                  final file = await picker.pickImage(
+                                    source: ImageSource.gallery,
+                                    imageQuality: 80,
+                                  );
+                                  if (file != null) {
+                                    final bytes = await file.readAsBytes();
+                                    final ext = file.name.split('.').last.toLowerCase();
+                                    setState(() {
+                                      pickedFile = file;
+                                      pickedBytes = bytes;
+                                      pickedExtension = ext.isEmpty ? 'jpg' : ext;
+                                    });
+                                  }
+                                } catch (e) {
+                                  debugPrint('Error picking image: $e');
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Gagal memilih gambar: $e'),
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                        child: Text(
+                          pickedFile == null ? 'Pilih Foto Baru' : 'Ubah Pilihan Foto',
+                          style: AppTypography.labelMedium.copyWith(color: AppColors.primary),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
                       TextFormField(
                         controller: nameController,
                         style: AppTypography.bodyMedium,
@@ -398,31 +526,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                           return null;
                         },
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      TextFormField(
-                        controller: photoUrlController,
-                        style: AppTypography.bodyMedium,
-                        decoration: InputDecoration(
-                          labelText: 'URL Foto Profil',
-                          labelStyle: AppTypography.bodySmall,
-                          prefixIcon: const Icon(Icons.image_outlined, color: AppColors.primary),
-                          filled: true,
-                          fillColor: AppColors.textPrimary.withOpacity(0.05),
-                          border: OutlineInputBorder(
-                            borderRadius: AppSpacing.borderRadiusMedium,
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        validator: (v) {
-                          if (v != null && v.trim().isNotEmpty) {
-                            final uri = Uri.tryParse(v.trim());
-                            if (uri == null || !uri.hasAbsolutePath) {
-                              return 'Format URL tidak valid';
-                            }
-                          }
-                          return null;
-                        },
-                      ),
                     ],
                   ),
                 ),
@@ -442,11 +545,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                           if (!formKey.currentState!.validate()) return;
                           setState(() => isLoading = true);
                           try {
+                            String photoUrl = currentUser?.photoURL ?? '';
+                            if (pickedBytes != null && currentUser != null) {
+                              photoUrl = await AuthService.uploadProfilePicture(
+                                userId: currentUser.uid,
+                                bytes: pickedBytes!,
+                                extension: pickedExtension ?? 'jpg',
+                              );
+                            }
                             await AuthService.updateProfile(
                               name: nameController.text.trim(),
-                              photoUrl: photoUrlController.text.trim(),
+                              photoUrl: photoUrl,
                             );
                             ref.invalidate(authUserProvider);
+                            ref.invalidate(userDocProvider);
                             if (ctx.mounted) {
                               Navigator.pop(ctx);
                               ScaffoldMessenger.of(context).showSnackBar(
