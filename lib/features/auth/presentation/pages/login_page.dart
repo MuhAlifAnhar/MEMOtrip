@@ -150,7 +150,6 @@ class _LoginPageState extends State<LoginPage>
       body: Stack(
         children: [
           // ─── Background Decorative Shapes ───────────────────
-          // Top Right Circle
           Positioned(
             top: -120,
             right: -80,
@@ -163,7 +162,6 @@ class _LoginPageState extends State<LoginPage>
               ),
             ),
           ),
-          // Middle Left Circle
           Positioned(
             left: -100,
             top: size.height * 0.35,
@@ -176,7 +174,6 @@ class _LoginPageState extends State<LoginPage>
               ),
             ),
           ),
-          // Bottom Right Circle
           Positioned(
             right: -100,
             bottom: size.height * 0.15,
@@ -189,7 +186,6 @@ class _LoginPageState extends State<LoginPage>
               ),
             ),
           ),
-          // Bottom Wave Curve
           Positioned(
             bottom: 0,
             left: 0,
@@ -215,8 +211,8 @@ class _LoginPageState extends State<LoginPage>
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.only(
+                    left: 32, right: 32, top: 16, bottom: 85),
                 child: FadeTransition(
                   opacity: _fadeAnim,
                   child: SlideTransition(
@@ -229,7 +225,6 @@ class _LoginPageState extends State<LoginPage>
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Mascot Logo
                           TweenAnimationBuilder<double>(
                             tween: Tween(begin: 0.0, end: 1.0),
                             duration: const Duration(milliseconds: 700),
@@ -246,8 +241,6 @@ class _LoginPageState extends State<LoginPage>
                             ),
                           ),
                           const SizedBox(height: 32),
-
-                          // Email field
                           _stagger(
                               1,
                               ShakeWidget(
@@ -261,8 +254,6 @@ class _LoginPageState extends State<LoginPage>
                                 ),
                               )),
                           const SizedBox(height: 16),
-
-                          // Password field
                           _stagger(
                               2,
                               ShakeWidget(
@@ -289,8 +280,6 @@ class _LoginPageState extends State<LoginPage>
                                 ),
                               )),
                           const SizedBox(height: 16),
-
-                          // Consent Text
                           _stagger(
                               3,
                               RichText(
@@ -316,8 +305,6 @@ class _LoginPageState extends State<LoginPage>
                                 ),
                               )),
                           const SizedBox(height: 24),
-
-                          // Login Button
                           _stagger(
                               4,
                               ShakeWidget(
@@ -361,8 +348,6 @@ class _LoginPageState extends State<LoginPage>
                                 ),
                               )),
                           const SizedBox(height: 24),
-
-                          // "Sign in with" header
                           _stagger(
                               5,
                               Text(
@@ -372,8 +357,6 @@ class _LoginPageState extends State<LoginPage>
                                 ),
                               )),
                           const SizedBox(height: 16),
-
-                          // Social logins
                           _stagger(
                               6,
                               Row(
@@ -451,34 +434,6 @@ class _LoginPageState extends State<LoginPage>
                                 ],
                               )),
                           const SizedBox(height: 24),
-
-                          // Don't have an account? Sign Up
-                          _stagger(
-                              7,
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    "Don't have an account? ",
-                                    style: AppTypography.bodySmall.copyWith(
-                                        color: Colors.white.withOpacity(0.85)),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () => Navigator.pushNamed(
-                                        context, '/register'),
-                                    child: const Text(
-                                      'Sign Up',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )),
-                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
@@ -486,6 +441,35 @@ class _LoginPageState extends State<LoginPage>
                 ),
               ),
             ),
+          ),
+          Positioned(
+            bottom: 24,
+            left: 0,
+            right: 0,
+            child: _stagger(
+                7,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Don't have an account? ",
+                      style: AppTypography.bodySmall
+                          .copyWith(color: Colors.white.withOpacity(0.85)),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, '/register'),
+                      child: const Text(
+                        'Sign Up',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          // decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                )),
           ),
         ],
       ),
@@ -505,7 +489,6 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  // ─── Validators ────────────────────────────────────────
   String? _validateEmail(String? v) {
     if (v == null || v.trim().isEmpty) return 'Email wajib diisi';
     if (!RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$').hasMatch(v.trim())) {
@@ -520,7 +503,6 @@ class _LoginPageState extends State<LoginPage>
     return null;
   }
 
-  // ─── Login ─────────────────────────────────────────────
   Future<void> _login() async {
     setState(() => _submitted = true);
 
@@ -549,69 +531,6 @@ class _LoginPageState extends State<LoginPage>
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  // ─── Forgot Password ──────────────────────────────────
-  void _forgotPassword() {
-    final ctrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusCard),
-        title: Row(children: [
-          const Icon(Icons.lock_reset_rounded,
-              color: AppColors.primary, size: 22),
-          const SizedBox(width: 8),
-          Text('Reset Password', style: AppTypography.headlineSmall),
-        ]),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Masukkan email untuk menerima link reset.',
-                style: AppTypography.bodySmall),
-            const SizedBox(height: AppSpacing.base),
-            TextField(
-              controller: ctrl,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                hintText: 'Email',
-                prefixIcon: Icon(Icons.email_outlined, size: 20),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Batal',
-                style: AppTypography.labelMedium
-                    .copyWith(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              if (ctrl.text.trim().isNotEmpty) {
-                try {
-                  await AuthService.sendPasswordReset(ctrl.text);
-                  if (mounted) {
-                    _showSnackbar('Link reset dikirim ke ${ctrl.text}',
-                        AppColors.success);
-                  }
-                } on FirebaseAuthException catch (e) {
-                  if (mounted) {
-                    _showSnackbar(
-                        AuthService.friendlyError(e), AppColors.error);
-                  }
-                }
-              }
-            },
-            child: const Text('Kirim'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showSnackbar(String msg, Color c) {
@@ -754,8 +673,8 @@ class _RegisterPageState extends State<RegisterPage>
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.only(
+                    left: 32, right: 32, top: 16, bottom: 85),
                 child: FadeTransition(
                   opacity: _fadeAnim,
                   child: SlideTransition(
@@ -785,17 +704,6 @@ class _RegisterPageState extends State<RegisterPage>
                             ),
                           ),
                           const SizedBox(height: 24),
-
-                          // Title
-                          // _stagger(0, Text(
-                          //   'Sign Up',
-                          //   style: AppTypography.headlineLarge.copyWith(
-                          //     color: const Color(0xFF1E3A8A),
-                          //     fontSize: 28,
-                          //     fontWeight: FontWeight.bold,
-                          //   ),
-                          // )),
-                          // const SizedBox(height: 24),
 
                           // Name field
                           _stagger(
@@ -938,33 +846,6 @@ class _RegisterPageState extends State<RegisterPage>
                                 ),
                               )),
                           const SizedBox(height: 24),
-
-                          // Already have an account? Login
-                          _stagger(
-                              6,
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Sudah punya akun? ',
-                                    style: AppTypography.bodySmall.copyWith(
-                                        color: Colors.white.withOpacity(0.85)),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () => Navigator.pop(context),
-                                    child: const Text(
-                                      'Masuk',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )),
-                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
@@ -972,6 +853,36 @@ class _RegisterPageState extends State<RegisterPage>
                 ),
               ),
             ),
+          ),
+          // Already have an account? Login (Absolutely Positioned at the bottom inside the dark blue wave)
+          Positioned(
+            bottom: 24,
+            left: 0,
+            right: 0,
+            child: _stagger(
+                6,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Already have an account? ',
+                      style: AppTypography.bodySmall
+                          .copyWith(color: Colors.white.withOpacity(0.85)),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Text(
+                        'Sign In',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          // decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                )),
           ),
         ],
       ),
