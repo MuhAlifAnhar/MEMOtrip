@@ -64,13 +64,14 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
 
     _col
         .where('userId', isEqualTo: uid)
-        .orderBy('date', descending: true)
         .snapshots()
         .listen(
       (snapshot) {
         final list = snapshot.docs
             .map((doc) => TravelMemory.fromFirestore(doc))
             .toList();
+        // Sort in memory to avoid requiring a composite index (userId + date) in Firestore
+        list.sort((a, b) => b.date.compareTo(a.date));
         state = MemoryState(memories: list, isLoading: false);
       },
       onError: (e) {
