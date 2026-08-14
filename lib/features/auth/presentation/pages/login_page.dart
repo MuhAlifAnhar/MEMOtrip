@@ -282,26 +282,29 @@ class _LoginPageState extends State<LoginPage>
                           const SizedBox(height: 16),
                           _stagger(
                               3,
-                              RichText(
-                                textAlign: TextAlign.center,
-                                text: TextSpan(
-                                  style: AppTypography.bodySmall.copyWith(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 12,
-                                  ),
-                                  children: const [
-                                    TextSpan(
-                                      text:
-                                          'Dengan melanjutkan, Anda memberikan izin untuk penggunaan data sesuai ',
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: RichText(
+                                  textAlign: TextAlign.left,
+                                  text: TextSpan(
+                                    style: AppTypography.bodySmall.copyWith(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 12,
                                     ),
-                                    TextSpan(
-                                      text: 'kebijakan kami.',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.textPrimary,
+                                    children: const [
+                                      TextSpan(
+                                        text:
+                                            'Dengan melanjutkan, Anda memberikan izin untuk penggunaan data sesuai ',
                                       ),
-                                    ),
-                                  ],
+                                      TextSpan(
+                                        text: 'kebijakan kami.',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               )),
                           const SizedBox(height: 24),
