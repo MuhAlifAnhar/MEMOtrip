@@ -15,7 +15,14 @@ class AuthService {
   // ─── Auth State Stream ────────────────────────────────
   /// Emits the current user whenever the auth state changes.
   /// Returns `null` when signed out, `User` when signed in.
-  static Stream<User?> get authStateChanges => _auth.authStateChanges();
+  ///
+  /// IMPORTANT: This is a cached `static final` field, NOT a getter.
+  /// Using a getter (`get authStateChanges => _auth.authStateChanges()`)
+  /// creates a NEW Stream instance on every access. When StreamBuilder
+  /// receives a different stream identity on rebuild, it unsubscribes and
+  /// resubscribes — entering ConnectionState.waiting and rebuilding the
+  /// entire child tree, which destroys TextFormField focus state.
+  static final Stream<User?> authStateChanges = _auth.authStateChanges();
 
   /// Current user (null if not signed in).
   static User? get currentUser => _auth.currentUser;
