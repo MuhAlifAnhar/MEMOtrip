@@ -467,7 +467,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
             padding: AppSpacing.paddingSection,
             child: Row(
               children: [
-                Text('Recent Activity',
+                Text('Aktivitas Terkini',
                     style: AppTypography.headlineLarge
                         .copyWith(fontWeight: FontWeight.w800)),
               ],
@@ -510,14 +510,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Partly Cloudy',
+              Text('Berawan Sebagian',
                   style: AppTypography.caption.copyWith(color: Colors.white70)),
               const Icon(Icons.compare_arrows_rounded,
                   color: Colors.white70, size: 14),
             ],
           ),
           const SizedBox(height: 4),
-          Text('5-day Forecast',
+          Text('Prakiraan 5 Hari',
               style: AppTypography.labelLarge.copyWith(color: Colors.white)),
           const SizedBox(height: AppSpacing.md),
           Row(
@@ -565,12 +565,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Location', style: AppTypography.caption),
+              Text('Lokasi', style: AppTypography.caption),
               const Icon(Icons.more_horiz_rounded,
                   color: AppColors.textHint, size: 14),
             ],
           ),
-          Text('New York, USA', style: AppTypography.labelMedium),
+          Text('Makassar, Indonesia', style: AppTypography.labelMedium),
         ],
       ),
     );
@@ -678,7 +678,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Thunder',
+                    Text('Hujan Badai',
                         style: AppTypography.labelMedium
                             .copyWith(color: Colors.white70)),
                     Text('20°C',
@@ -833,7 +833,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
           child: Padding(
             padding: AppSpacing.paddingSection,
             child: Text(
-              'Current Condition',
+              'Kondisi Terkini',
               style: AppTypography.headlineMedium.copyWith(
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
@@ -852,9 +852,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
               children: [
                 Expanded(
                   child: CustomGauge(
-                    label: 'Wind',
+                    label: 'Kecepatan Angin',
                     value: '9',
-                    unit: 'km/h',
+                    unit: 'km/jam',
                     icon: Icons.air_rounded,
                     percentage: (9.0 / 100).clamp(0.0, 1.0),
                   ),
@@ -862,7 +862,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: CustomGauge(
-                    label: 'Temperature',
+                    label: 'Suhu Udara',
                     value: selected.suhu.toStringAsFixed(0),
                     unit: '°C',
                     icon: Icons.thermostat_rounded,
@@ -892,9 +892,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildGridItem(Icons.water_drop_outlined, 'Chance of Rain', '58%', Colors.blue),
-                      _buildGridItem(Icons.water_rounded, 'Humidity', '${selected.kelembapan.toStringAsFixed(0)}%', Colors.blue),
-                      _buildGridItem(Icons.speed_rounded, 'Pressure', '${selected.tekanan.toStringAsFixed(0)}hPa', Colors.blue),
+                      _buildGridItem(Icons.water_drop_outlined, 'Peluang Hujan', '58%', Colors.blue),
+                      _buildGridItem(Icons.water_rounded, 'Kelembapan', '${selected.kelembapan.toStringAsFixed(0)}%', Colors.blue),
+                      _buildGridItem(Icons.speed_rounded, 'Tekanan Udara', '${selected.tekanan.toStringAsFixed(0)}hPa', Colors.blue),
                     ],
                   ),
                   const SizedBox(height: 32),

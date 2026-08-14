@@ -172,7 +172,7 @@ class _ScheduleEditorDialogState extends State<ScheduleEditorDialog> {
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Text(
-                  widget.initialSchedule != null ? 'Edit Rencana Jadwal' : 'Tambah Rencana Jadwal',
+                  widget.initialSchedule != null ? 'Ubah Rencana Jadwal' : 'Tambah Rencana Jadwal',
                   style: AppTypography.headlineMedium,
                 ),
               ],

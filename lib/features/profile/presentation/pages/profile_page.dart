@@ -215,7 +215,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       child: _menu(
                           context,
                           Icons.admin_panel_settings_rounded,
-                          'Admin Panel',
+                          'Panel Admin',
                           'Dashboard admin (web)',
                           isAdmin: true,
                           onTap: () =>

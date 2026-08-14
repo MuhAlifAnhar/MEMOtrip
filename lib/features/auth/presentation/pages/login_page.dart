@@ -264,7 +264,7 @@ class _LoginPageState extends State<LoginPage>
                                   style: AppTypography.bodyMedium,
                                   validator: _validatePassword,
                                   decoration: _inputDeco(
-                                    labelText: 'Password',
+                                    labelText: 'Kata Sandi',
                                     suffixIcon: IconButton(
                                       icon: Icon(
                                         _obscure
@@ -339,7 +339,7 @@ class _LoginPageState extends State<LoginPage>
                                               ),
                                             )
                                           : const Text(
-                                              'Login',
+                                              'Masuk',
                                               key: ValueKey('t'),
                                               style: TextStyle(
                                                 fontSize: 16,
@@ -354,7 +354,7 @@ class _LoginPageState extends State<LoginPage>
                           _stagger(
                               5,
                               Text(
-                                'Sign in with',
+                                'Atau masuk dengan',
                                 style: AppTypography.bodySmall.copyWith(
                                   color: AppColors.textSecondary,
                                 ),
@@ -369,7 +369,7 @@ class _LoginPageState extends State<LoginPage>
                                     child: const Icon(Icons.facebook,
                                         color: Color(0xFF1877F2), size: 28),
                                     onTap: () => _showSnackbar(
-                                      'Facebook Sign-In — Segera hadir!',
+                                      'Facebook Masuk — Segera hadir!',
                                       AppColors.warning,
                                     ),
                                   ),
@@ -396,7 +396,7 @@ class _LoginPageState extends State<LoginPage>
                                       ),
                                     ),
                                     onTap: () => _showSnackbar(
-                                      'Google Sign-In — Segera hadir!',
+                                      'Google Masuk — Segera hadir!',
                                       AppColors.warning,
                                     ),
                                   ),
@@ -405,7 +405,7 @@ class _LoginPageState extends State<LoginPage>
                                     child: const Icon(Icons.apple,
                                         color: Colors.black, size: 28),
                                     onTap: () => _showSnackbar(
-                                      'Apple Sign-In — Segera hadir!',
+                                      'Apple Masuk — Segera hadir!',
                                       AppColors.warning,
                                     ),
                                   ),
@@ -430,7 +430,7 @@ class _LoginPageState extends State<LoginPage>
                                       ),
                                     ),
                                     onTap: () => _showSnackbar(
-                                      'LinkedIn Sign-In — Segera hadir!',
+                                      'LinkedIn Masuk — Segera hadir!',
                                       AppColors.warning,
                                     ),
                                   ),
@@ -455,14 +455,14 @@ class _LoginPageState extends State<LoginPage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Don't have an account? ",
+                      "Belum punya akun? ",
                       style: AppTypography.bodySmall
                           .copyWith(color: Colors.white.withOpacity(0.85)),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pushNamed(context, '/register'),
                       child: const Text(
-                        'Sign Up',
+                        'Daftar',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -752,7 +752,7 @@ class _RegisterPageState extends State<RegisterPage>
                                   style: AppTypography.bodyMedium,
                                   validator: _validatePassword,
                                   decoration: _inputDeco(
-                                    labelText: 'Password',
+                                    labelText: 'Kata Sandi',
                                     suffixIcon: IconButton(
                                       icon: Icon(
                                         _obscure
@@ -868,19 +868,18 @@ class _RegisterPageState extends State<RegisterPage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Already have an account? ',
+                      'Sudah punya akun? ',
                       style: AppTypography.bodySmall
                           .copyWith(color: Colors.white.withOpacity(0.85)),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: const Text(
-                        'Sign In',
+                        'Masuk',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          // decoration: TextDecoration.underline,
                         ),
                       ),
                     ),

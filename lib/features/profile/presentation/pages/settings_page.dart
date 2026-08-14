@@ -24,7 +24,7 @@ class _SettingsPageState extends State<SettingsPage> {
   // ─── Language Options ───────────────────────────────────
   static const _languages = [
     ('id', '🇮🇩 Bahasa Indonesia', 'Default'),
-    ('en', '🇬🇧 English', 'Coming soon'),
+    ('en', '🇬🇧 English', 'Segera hadir'),
   ];
 
   // ─── Theme Options ─────────────────────────────────────
@@ -96,7 +96,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         child: Column(
                           children: _languages.map((lang) {
                             final isSelected = _selectedLanguage == lang.$1;
-                            final isAvailable = lang.$3 != 'Coming soon';
+                            final isAvailable = lang.$3 != 'Segera hadir';
                             return _buildLanguageOption(
                               key: lang.$1,
                               label: lang.$2,
@@ -139,7 +139,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             _buildDivider(),
                             _buildNotifToggle(
                               icon: Icons.warning_amber_rounded,
-                              title: 'Early Warning',
+                              title: 'Peringatan Dini',
                               subtitle: 'Peringatan dini bencana alam',
                               value: _notifEarlyWarning,
                               iconColor: AppColors.warning,

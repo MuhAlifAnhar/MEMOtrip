@@ -175,7 +175,7 @@ class _DestinationDetailPageState extends ConsumerState<DestinationDetailPage>
                             children: [
                               const Icon(Icons.view_in_ar_rounded, color: Colors.white, size: 14),
                               const SizedBox(width: 4),
-                              Text('360° View', style: AppTypography.labelSmall.copyWith(color: Colors.white)),
+                              Text('Tampilan 360°', style: AppTypography.labelSmall.copyWith(color: Colors.white)),
                             ],
                           ),
                         ),

@@ -18,7 +18,7 @@ class AdminSidebar extends ConsumerWidget {
   });
 
   static const _items = [
-    (Icons.dashboard_rounded, 'Overview'),
+    (Icons.dashboard_rounded, 'Ringkasan'),
     (Icons.sensors_rounded, 'Perangkat IoT'),
     (Icons.map_rounded, 'Destinasi'),
     (Icons.rate_review_rounded, 'Moderasi'),
@@ -61,7 +61,7 @@ class AdminSidebar extends ConsumerWidget {
                       Text('MEMOtrip',
                           style: AppTypography.headlineMedium
                               .copyWith(color: Colors.white)),
-                      Text('Admin Panel',
+                      Text('Panel Admin',
                           style: AppTypography.caption
                               .copyWith(color: Colors.white70)),
                     ]),
