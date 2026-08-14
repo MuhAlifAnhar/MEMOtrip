@@ -1,8 +1,9 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../../domain/entities/travel_memory.dart';
 
 // Re-export entity so consumers only import the provider file
@@ -46,7 +47,6 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
   }
 
   final _db = FirebaseFirestore.instance;
-  final _storage = FirebaseStorage.instance;
 
   String? get _uid => FirebaseAuth.instance.currentUser?.uid;
 
@@ -71,7 +71,7 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
         final list = snapshot.docs
             .map((doc) => TravelMemory.fromFirestore(doc))
             .toList();
-        state = MemoryState(memories: list);
+        state = MemoryState(memories: list, isLoading: false);
       },
       onError: (e) {
         state = state.copyWith(
@@ -85,7 +85,7 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
   // ── CREATE ──────────────────────────────────────────────
 
   /// Adds a new memory. [imageBytes] and [imageExtension] are used to upload
-  /// the photo to Firebase Storage first, then store the download URL.
+  /// the photo to ImgBB first, then store the display URL.
   Future<void> addMemory({
     required String destinationName,
     required String category,
@@ -104,12 +104,10 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
       final docRef = _col.doc();
       final docId = docRef.id;
 
-      // 2. Upload image to Firebase Storage
-      final imageUrl = await _uploadImage(
-        userId: uid,
-        memoryId: docId,
+      // 2. Upload image to ImgBB
+      final imageUrl = await _uploadImageToImgBB(
         bytes: imageBytes,
-        extension: imageExtension,
+        filename: '$docId.$imageExtension',
       );
 
       // 3. Create Firestore document
@@ -125,7 +123,6 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
       );
 
       await docRef.set(memory.toFirestore());
-      // State will update automatically via the snapshot listener
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -136,8 +133,8 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
 
   // ── UPDATE ──────────────────────────────────────────────
 
-  /// Updates an existing memory. If new [imageBytes] are provided, the old
-  /// image is replaced in Storage.
+  /// Updates an existing memory. If new [imageBytes] are provided, the image
+  /// is uploaded to ImgBB.
   Future<void> updateMemory({
     required String memoryId,
     required String destinationName,
@@ -158,11 +155,9 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
 
       // Upload new image if provided
       if (newImageBytes != null && newImageExtension != null) {
-        imageUrl = await _uploadImage(
-          userId: uid,
-          memoryId: memoryId,
+        imageUrl = await _uploadImageToImgBB(
           bytes: newImageBytes,
-          extension: newImageExtension,
+          filename: '$memoryId.$newImageExtension',
         );
       }
 
@@ -173,7 +168,6 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
         'caption': caption,
         'imageUrl': imageUrl,
       });
-      // State will update automatically via the snapshot listener
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -188,21 +182,8 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
     state = state.copyWith(isLoading: true);
 
     try {
-      // Delete from Storage (best-effort, ignore if file missing)
-      try {
-        final uid = _uid ?? '';
-        final ref = _storage.ref().child('memories/$uid/$memoryId');
-        final result = await ref.listAll();
-        for (final item in result.items) {
-          await item.delete();
-        }
-      } catch (_) {
-        // Image may not exist — that's fine
-      }
-
-      // Delete Firestore document
+      // Delete Firestore document (ImgBB uploaded files are kept as they are hosted externally)
       await _col.doc(memoryId).delete();
-      // State will update automatically via the snapshot listener
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -211,26 +192,35 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
     }
   }
 
-  // ── Storage helpers ─────────────────────────────────────
+  // ── Storage/API helpers ─────────────────────────────────
 
-  Future<String> _uploadImage({
-    required String userId,
-    required String memoryId,
+  Future<String> _uploadImageToImgBB({
     required Uint8List bytes,
-    required String extension,
+    required String filename,
   }) async {
-    final ref = _storage
-        .ref()
-        .child('memories')
-        .child(userId)
-        .child('$memoryId.$extension');
+    final uri = Uri.parse('https://api.imgbb.com/1/upload?key=ef1364bc9c4093041fae1d09148cad68');
+    final request = http.MultipartRequest('POST', uri);
 
-    final uploadTask = ref.putData(
+    final multipartFile = http.MultipartFile.fromBytes(
+      'image',
       bytes,
-      SettableMetadata(contentType: 'image/$extension'),
+      filename: filename,
     );
-    final snapshot = await uploadTask;
-    return await snapshot.ref.getDownloadURL();
+    request.files.add(multipartFile);
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      final displayUrl = jsonResponse['data']?['display_url'];
+      if (displayUrl != null) {
+        return displayUrl as String;
+      }
+      throw Exception('Tautan gambar (display_url) tidak ditemukan dalam respon.');
+    } else {
+      throw Exception('Pengunggahan gambar ke ImgBB gagal dengan status: ${response.statusCode}');
+    }
   }
 }
 
