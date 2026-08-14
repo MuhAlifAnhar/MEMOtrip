@@ -178,44 +178,50 @@ class _SchedulePageState extends ConsumerState<SchedulePage>
                   children: [
                     // Travel illustration emojis
                     const Text('🗺️📅🧳🏖️🌴', style: TextStyle(fontSize: 28)),
-                    const Spacer(),
+                    const SizedBox(width: 12),
                     // Tambah Jadwal button
-                    GestureDetector(
-                      onTap: _showCreateDialog,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: AppSpacing.borderRadiusFull,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withOpacity(0.35),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Tambah Jadwal',
-                              style: AppTypography.labelMedium.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
+                    Flexible(
+                      child: GestureDetector(
+                        onTap: _showCreateDialog,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            borderRadius: AppSpacing.borderRadiusFull,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withOpacity(0.35),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.25),
-                                shape: BoxShape.circle,
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  'Tambah Jadwal',
+                                  style: AppTypography.labelMedium.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
                               ),
-                              child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.25),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
