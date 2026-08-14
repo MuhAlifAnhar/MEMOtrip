@@ -461,16 +461,18 @@ class _LoginPageState extends State<LoginPage>
                                   Text(
                                     "Don't have an account? ",
                                     style: AppTypography.bodySmall.copyWith(
-                                        color: AppColors.textSecondary),
+                                        color: Colors.white.withOpacity(0.85)),
                                   ),
                                   GestureDetector(
                                     onTap: () => Navigator.pushNamed(
                                         context, '/register'),
-                                    child: Text(
+                                    child: const Text(
                                       'Sign Up',
-                                      style: AppTypography.labelMedium.copyWith(
-                                        color: const Color(0xFF1E3A8A),
+                                      style: TextStyle(
+                                        color: Colors.white,
                                         fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        decoration: TextDecoration.underline,
                                       ),
                                     ),
                                   ),
@@ -946,15 +948,17 @@ class _RegisterPageState extends State<RegisterPage>
                                   Text(
                                     'Sudah punya akun? ',
                                     style: AppTypography.bodySmall.copyWith(
-                                        color: AppColors.textSecondary),
+                                        color: Colors.white.withOpacity(0.85)),
                                   ),
                                   GestureDetector(
                                     onTap: () => Navigator.pop(context),
-                                    child: Text(
+                                    child: const Text(
                                       'Masuk',
-                                      style: AppTypography.labelMedium.copyWith(
-                                        color: const Color(0xFF1E3A8A),
+                                      style: TextStyle(
+                                        color: Colors.white,
                                         fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        decoration: TextDecoration.underline,
                                       ),
                                     ),
                                   ),
