@@ -7,6 +7,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/utils/distance_calculator.dart';
 import '../../../../core/utils/placeholder_images.dart';
+import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/sensor_data_card.dart';
@@ -723,76 +724,146 @@ class _DestinationDetailPageState extends ConsumerState<DestinationDetailPage>
 
   void _showAddScheduleDialog(BuildContext context) {
     final titleCtrl = TextEditingController(text: destination.name);
+    DateTime selectedDateTime = DateTime.now().add(const Duration(days: 1));
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: EdgeInsets.only(
-          top: AppSpacing.xl, left: AppSpacing.xl, right: AppSpacing.xl,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
-        ),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLarge)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.divider, borderRadius: AppSpacing.borderRadiusFull))),
-            const SizedBox(height: AppSpacing.lg),
-            Text(AppStrings.tambahKeJadwal, style: AppTypography.headlineMedium),
-            const SizedBox(height: AppSpacing.xl),
-            Text(AppStrings.judulJadwal, style: AppTypography.labelLarge),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(controller: titleCtrl, style: AppTypography.bodyMedium),
-            const SizedBox(height: AppSpacing.xl),
-            Row(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setStateSheet) {
+          Future<void> pickDateTime() async {
+            final pickedDate = await showDatePicker(
+              context: ctx,
+              initialDate: selectedDateTime,
+              firstDate: DateTime.now(),
+              lastDate: DateTime.now().add(const Duration(days: 365)),
+              helpText: 'Pilih Tanggal Kunjungan',
+              cancelText: 'Batal',
+              confirmText: 'Pilih',
+            );
+            if (pickedDate == null) return;
+
+            if (!ctx.mounted) return;
+
+            final pickedTime = await showTimePicker(
+              context: ctx,
+              initialTime: TimeOfDay.fromDateTime(selectedDateTime),
+              helpText: 'Pilih Jam Kunjungan',
+              cancelText: 'Batal',
+              confirmText: 'Pilih',
+            );
+            if (pickedTime == null) return;
+
+            setStateSheet(() {
+              selectedDateTime = DateTime(
+                pickedDate.year,
+                pickedDate.month,
+                pickedDate.day,
+                pickedTime.hour,
+                pickedTime.minute,
+              );
+            });
+          }
+
+          final dateStr = DateFormatter.fullDate(selectedDateTime);
+          final timeStr = TimeOfDay.fromDateTime(selectedDateTime).format(ctx);
+
+          return Container(
+            padding: EdgeInsets.only(
+              top: AppSpacing.xl, left: AppSpacing.xl, right: AppSpacing.xl,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
+            ),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLarge)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text(AppStrings.batal))),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(child: ElevatedButton(
-                  onPressed: () {
-                    final title = titleCtrl.text.trim();
-                    if (title.isEmpty) return;
-
-                    final user = FirebaseAuth.instance.currentUser;
-                    final userId = user?.uid ?? 'u1';
-                    final docId = FirebaseFirestore.instance.collection('schedules').doc().id;
-
-                    final newSchedule = Schedule(
-                      id: docId,
-                      userId: userId,
-                      title: title,
-                      createdAt: DateTime.now(),
-                      items: [
-                        ScheduleItem(
-                          id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          destinationId: destination.id,
-                          destinationName: destination.name,
-                          destinationImageUrl: destination.imageUrls.isNotEmpty ? destination.imageUrls.first : null,
-                          dateTime: DateTime.now().add(const Duration(days: 1)),
-                          notes: 'Rencana perjalanan ke ${destination.name}',
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.divider, borderRadius: AppSpacing.borderRadiusFull))),
+                const SizedBox(height: AppSpacing.lg),
+                Text(AppStrings.tambahKeJadwal, style: AppTypography.headlineMedium),
+                const SizedBox(height: AppSpacing.xl),
+                Text(AppStrings.judulJadwal, style: AppTypography.labelLarge),
+                const SizedBox(height: AppSpacing.sm),
+                TextField(controller: titleCtrl, style: AppTypography.bodyMedium),
+                const SizedBox(height: AppSpacing.lg),
+                Text('Waktu Kunjungan', style: AppTypography.labelLarge),
+                const SizedBox(height: AppSpacing.sm),
+                InkWell(
+                  onTap: pickDateTime,
+                  borderRadius: AppSpacing.borderRadiusMedium,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.base),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.divider),
+                      borderRadius: AppSpacing.borderRadiusMedium,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_month_rounded, color: AppColors.primary),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Text(
+                            '$dateStr pukul $timeStr',
+                            style: AppTypography.bodyMedium,
+                          ),
                         ),
+                        const Icon(Icons.arrow_drop_down_rounded, color: AppColors.textHint),
                       ],
-                    );
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Row(
+                  children: [
+                    Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text(AppStrings.batal))),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(child: ElevatedButton(
+                      onPressed: () {
+                        final title = titleCtrl.text.trim();
+                        if (title.isEmpty) return;
 
-                    ref.read(schedulesProvider.notifier).addSchedule(newSchedule);
+                        final user = FirebaseAuth.instance.currentUser;
+                        final userId = user?.uid ?? 'u1';
+                        final docId = FirebaseFirestore.instance.collection('schedules').doc().id;
 
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text('"${destination.name}" ditambahkan ke jadwal'),
-                      backgroundColor: AppColors.success,
-                      behavior: SnackBarBehavior.floating,
-                    ));
-                  },
-                  child: const Text(AppStrings.konfirmasi),
-                )),
+                        final newSchedule = Schedule(
+                          id: docId,
+                          userId: userId,
+                          title: title,
+                          createdAt: DateTime.now(),
+                          items: [
+                            ScheduleItem(
+                              id: DateTime.now().millisecondsSinceEpoch.toString(),
+                              destinationId: destination.id,
+                              destinationName: destination.name,
+                              destinationImageUrl: destination.imageUrls.isNotEmpty ? destination.imageUrls.first : null,
+                              dateTime: selectedDateTime,
+                              notes: 'Rencana perjalanan ke ${destination.name}',
+                            ),
+                          ],
+                        );
+
+                        ref.read(schedulesProvider.notifier).addSchedule(newSchedule);
+
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text('"${destination.name}" ditambahkan ke jadwal'),
+                          backgroundColor: AppColors.success,
+                          behavior: SnackBarBehavior.floating,
+                        ));
+                      },
+                      child: const Text(AppStrings.konfirmasi),
+                    )),
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
