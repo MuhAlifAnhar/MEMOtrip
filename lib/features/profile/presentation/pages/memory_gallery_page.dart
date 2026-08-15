@@ -53,7 +53,7 @@ class _MemoryGalleryPageState extends ConsumerState<MemoryGalleryPage> {
           slivers: [
             // ── App Bar ──────────────────────────────────
             SliverAppBar(
-              expandedHeight: 140,
+              expandedHeight: 160,
               pinned: true,
               stretch: true,
               backgroundColor: AppColors.primary,
@@ -75,21 +75,24 @@ class _MemoryGalleryPageState extends ConsumerState<MemoryGalleryPage> {
                   decoration: const BoxDecoration(
                     gradient: AppColors.primaryGradient,
                   ),
-                  padding: const EdgeInsets.fromLTRB(20, 80, 20, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text('Memori Perjalanan 📸',
-                          style: AppTypography.displaySmall
-                              .copyWith(color: Colors.white)),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${memoryState.memories.length} kenangan tersimpan',
-                        style: AppTypography.bodyMedium
-                            .copyWith(color: Colors.white70),
-                      ),
-                    ],
+                  padding: const EdgeInsets.fromLTRB(20, 80, 20, 12),
+                  child: SingleChildScrollView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text('Memori Perjalanan 📸',
+                            style: AppTypography.displaySmall
+                                .copyWith(color: Colors.white)),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${memoryState.memories.length} kenangan tersimpan',
+                          style: AppTypography.bodyMedium
+                              .copyWith(color: Colors.white70),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
