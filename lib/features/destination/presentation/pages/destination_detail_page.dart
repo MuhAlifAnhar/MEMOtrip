@@ -16,8 +16,11 @@ import '../../data/mock_destination_data.dart';
 import '../../domain/entities/destination.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/destination_provider.dart';
 import '../../domain/entities/review.dart';
+import '../../../schedule/presentation/providers/schedule_provider.dart';
 
 /// Destination Detail Page — Deep dive view with sensor data, facilities, reviews.
 class DestinationDetailPage extends ConsumerStatefulWidget {
@@ -751,6 +754,32 @@ class _DestinationDetailPageState extends ConsumerState<DestinationDetailPage>
                 const SizedBox(width: AppSpacing.md),
                 Expanded(child: ElevatedButton(
                   onPressed: () {
+                    final title = titleCtrl.text.trim();
+                    if (title.isEmpty) return;
+
+                    final user = FirebaseAuth.instance.currentUser;
+                    final userId = user?.uid ?? 'u1';
+                    final docId = FirebaseFirestore.instance.collection('schedules').doc().id;
+
+                    final newSchedule = Schedule(
+                      id: docId,
+                      userId: userId,
+                      title: title,
+                      createdAt: DateTime.now(),
+                      items: [
+                        ScheduleItem(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          destinationId: destination.id,
+                          destinationName: destination.name,
+                          destinationImageUrl: destination.imageUrls.isNotEmpty ? destination.imageUrls.first : null,
+                          dateTime: DateTime.now().add(const Duration(days: 1)),
+                          notes: 'Rencana perjalanan ke ${destination.name}',
+                        ),
+                      ],
+                    );
+
+                    ref.read(schedulesProvider.notifier).addSchedule(newSchedule);
+
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       content: Text('"${destination.name}" ditambahkan ke jadwal'),
