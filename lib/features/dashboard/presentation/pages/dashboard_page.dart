@@ -279,7 +279,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
     return _AnimatedSection(
       index: 0,
       child: Padding(
-        padding: AppSpacing.paddingSection,
+        padding: const EdgeInsets.only(
+          left: AppSpacing.lg,
+          right: AppSpacing.lg,
+          top: AppSpacing.md,
+          bottom: AppSpacing.xs,
+        ),
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.base),
           decoration: BoxDecoration(
@@ -915,7 +920,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         _AnimatedSection(
           index: 5,
           child: Padding(
-            padding: AppSpacing.paddingSection,
+            padding: const EdgeInsets.only(
+              left: AppSpacing.lg,
+              right: AppSpacing.lg,
+              top: AppSpacing.lg,
+              bottom: AppSpacing.sm,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

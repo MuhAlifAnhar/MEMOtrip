@@ -64,7 +64,7 @@ class _BookmarkPageState extends ConsumerState<BookmarkPage> {
           slivers: [
             // ─── App Bar ────────────────────────────────────
             SliverAppBar(
-              expandedHeight: 140,
+              expandedHeight: 160,
               pinned: true,
               stretch: true,
               backgroundColor: AppColors.primary,
@@ -86,23 +86,26 @@ class _BookmarkPageState extends ConsumerState<BookmarkPage> {
                   decoration: const BoxDecoration(
                     gradient: AppColors.primaryGradient,
                   ),
-                  padding: const EdgeInsets.fromLTRB(20, 80, 20, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text('Bookmark 🔖',
-                          style: AppTypography.displaySmall
-                              .copyWith(color: Colors.white)),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${_bookmarked.length} destinasi tersimpan',
-                        style: AppTypography.labelSmall.copyWith(
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w500,
+                  padding: const EdgeInsets.fromLTRB(20, 80, 20, 12),
+                  child: SingleChildScrollView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text('Bookmark 🔖',
+                            style: AppTypography.displaySmall
+                                .copyWith(color: Colors.white)),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_bookmarked.length} destinasi tersimpan',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -206,107 +209,111 @@ class _BookmarkPageState extends ConsumerState<BookmarkPage> {
             PageTransitions.slideUp(
                 page: DestinationDetailPage(destination: dest)),
           ),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              borderRadius: AppSpacing.borderRadiusCard,
-              boxShadow: AppColors.cardShadow,
-              border: AppColors.cardBorder,
-            ),
-            child: ClipRRect(
-              borderRadius: AppSpacing.borderRadiusCard,
-              child: Row(
-                children: [
-                  // Image
-                  SizedBox(
-                    width: 110,
-                    height: 110,
-                    child: AppNetworkImage(
-                      imageUrl: PlaceholderImages.destination(
-                          dest.id, w: 300, h: 300),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  // Info
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(dest.name,
-                              style: AppTypography.titleSmall,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on_outlined,
-                                  size: 12, color: AppColors.textHint),
-                              const SizedBox(width: 3),
-                              Expanded(
-                                child: Text(
-                                  dest.address,
-                                  style: AppTypography.caption.copyWith(fontSize: 11),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const Icon(Icons.star_rounded,
-                                  size: 14, color: AppColors.starFilled),
-                              const SizedBox(width: 2),
-                              Text(
-                                dest.rating.toStringAsFixed(1),
-                                style: AppTypography.labelSmall.copyWith(
-                                    fontWeight: FontWeight.w600),
-                              ),
-                              Text(
-                                ' (${dest.reviewCount})',
-                                style: AppTypography.caption
-                                    .copyWith(fontSize: 10),
-                              ),
-                              const Spacer(),
-                              const Icon(Icons.near_me_rounded,
-                                  size: 12, color: AppColors.primary),
-                              const SizedBox(width: 3),
-                              Text(
-                                DistanceCalculator.formatDistance(km),
-                                style: AppTypography.labelSmall.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+            child: Container(
+              margin: const EdgeInsets.only(bottom: AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                borderRadius: AppSpacing.borderRadiusCard,
+                boxShadow: AppColors.cardShadow,
+                border: AppColors.cardBorder,
+              ),
+              child: ClipRRect(
+                borderRadius: AppSpacing.borderRadiusCard,
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Image
+                      SizedBox(
+                        width: 100,
+                        child: AppNetworkImage(
+                          imageUrl: PlaceholderImages.destination(
+                              dest.id, w: 300, h: 300),
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ),
+                      // Info
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(dest.name,
+                                  style: AppTypography.titleSmall,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.location_on_outlined,
+                                      size: 12, color: AppColors.textHint),
+                                  const SizedBox(width: 3),
+                                  Expanded(
+                                    child: Text(
+                                      dest.address,
+                                      style: AppTypography.caption.copyWith(fontSize: 11),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.star_rounded,
+                                      size: 14, color: AppColors.starFilled),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    dest.rating.toStringAsFixed(1),
+                                    style: AppTypography.labelSmall.copyWith(
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  Text(
+                                    ' (${dest.reviewCount})',
+                                    style: AppTypography.caption
+                                        .copyWith(fontSize: 10),
+                                  ),
+                                  const Spacer(),
+                                  const Icon(Icons.near_me_rounded,
+                                      size: 12, color: AppColors.primary),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    DistanceCalculator.formatDistance(km),
+                                    style: AppTypography.labelSmall.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Bookmark icon + swipe hint
+                      Padding(
+                        padding: const EdgeInsets.only(right: AppSpacing.md),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.bookmark_rounded,
+                                size: 22, color: AppColors.starFilled),
+                            const SizedBox(height: 4),
+                            Icon(Icons.chevron_right_rounded,
+                                size: 16, color: AppColors.textHint.withOpacity(0.5)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  // Bookmark icon + swipe hint
-                  Padding(
-                    padding: const EdgeInsets.only(right: AppSpacing.md),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.bookmark_rounded,
-                            size: 22, color: AppColors.starFilled),
-                        const SizedBox(height: 4),
-                        Icon(Icons.chevron_right_rounded,
-                            size: 16, color: AppColors.textHint.withOpacity(0.5)),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
         ),
       ),
     );

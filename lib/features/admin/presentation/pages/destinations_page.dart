@@ -340,93 +340,132 @@ class _DestinationsPageState extends ConsumerState<DestinationsPage> {
 
   Widget _buildRow(Destination d) {
     final hasHardware = d.hardwareId != null && d.hardwareId!.isNotEmpty;
-    return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: 6),
-      leading: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          borderRadius: AppSpacing.borderRadiusSmall,
-        ),
-        child: Icon(Icons.landscape_rounded,
-            color: Colors.white.withOpacity(0.7), size: 28),
-      ),
-      title: Row(
-        children: [
-          Text(d.name, style: AppTypography.titleSmall),
-          const SizedBox(width: AppSpacing.sm),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 450;
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.base, vertical: 6),
+          leading: Container(
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
-              color: _catColor(d.category).withOpacity(0.1),
-              borderRadius: AppSpacing.borderRadiusFull,
+              gradient: AppColors.primaryGradient,
+              borderRadius: AppSpacing.borderRadiusSmall,
             ),
-            child: Text(
-              '${_catEmoji(d.category)} ${d.category}',
-              style: AppTypography.labelSmall
-                  .copyWith(color: _catColor(d.category)),
-            ),
+            child: Icon(Icons.landscape_rounded,
+                color: Colors.white.withOpacity(0.7), size: 24),
           ),
-          if (hasHardware) ...[
-            const SizedBox(width: AppSpacing.sm),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
-                borderRadius: AppSpacing.borderRadiusFull,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.sensors_rounded,
-                      size: 12, color: AppColors.success),
-                  const SizedBox(width: 2),
-                  Text('IoT',
-                      style: AppTypography.labelSmall
-                          .copyWith(color: AppColors.success, fontSize: 10)),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-      subtitle: Row(
-        children: [
-          const Icon(Icons.location_on_outlined,
-              size: 12, color: AppColors.textHint),
-          const SizedBox(width: 2),
-          Expanded(
-            child: Text(d.address,
-                style: AppTypography.caption,
+          title: Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                d.name,
+                style: AppTypography.titleSmall,
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis),
+                overflow: TextOverflow.ellipsis,
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _catColor(d.category).withOpacity(0.1),
+                  borderRadius: AppSpacing.borderRadiusFull,
+                ),
+                child: Text(
+                  '${_catEmoji(d.category)} ${d.category}',
+                  style: AppTypography.labelSmall
+                      .copyWith(color: _catColor(d.category)),
+                ),
+              ),
+              if (hasHardware)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withOpacity(0.1),
+                    borderRadius: AppSpacing.borderRadiusFull,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.sensors_rounded,
+                          size: 12, color: AppColors.success),
+                      const SizedBox(width: 2),
+                      Text('IoT',
+                          style: AppTypography.labelSmall
+                              .copyWith(color: AppColors.success, fontSize: 10)),
+                    ],
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.md),
-          const Icon(Icons.star_rounded, size: 14, color: AppColors.starFilled),
-          const SizedBox(width: 2),
-          Text('${d.rating} (${d.reviewCount})',
-              style: AppTypography.caption),
-        ],
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.edit_rounded,
-                size: 20, color: AppColors.primary),
-            onPressed: () => _showAddEditDialog(context, d),
-            tooltip: 'Edit',
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4.0),
+            child: Row(
+              children: [
+                const Icon(Icons.location_on_outlined,
+                    size: 12, color: AppColors.textHint),
+                const SizedBox(width: 2),
+                Expanded(
+                  child: Text(
+                    d.address,
+                    style: AppTypography.caption,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                const Icon(Icons.star_rounded, size: 14, color: AppColors.starFilled),
+                const SizedBox(width: 2),
+                Text(
+                  '${d.rating} (${d.reviewCount})',
+                  style: AppTypography.caption,
+                ),
+              ],
+            ),
           ),
-          IconButton(
-            icon:
-                const Icon(Icons.delete_rounded, size: 20, color: AppColors.error),
-            onPressed: () => _confirmDelete(d),
-            tooltip: 'Hapus',
-          ),
-        ],
-      ),
+          trailing: isNarrow
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_rounded,
+                          size: 18, color: AppColors.primary),
+                      onPressed: () => _showAddEditDialog(context, d),
+                      tooltip: 'Edit',
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(4),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_rounded,
+                          size: 18, color: AppColors.error),
+                      onPressed: () => _confirmDelete(d),
+                      tooltip: 'Hapus',
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(4),
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_rounded,
+                          size: 20, color: AppColors.primary),
+                      onPressed: () => _showAddEditDialog(context, d),
+                      tooltip: 'Edit',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_rounded,
+                          size: 20, color: AppColors.error),
+                      onPressed: () => _confirmDelete(d),
+                      tooltip: 'Hapus',
+                    ),
+                  ],
+                ),
+        );
+      },
     );
   }
 
