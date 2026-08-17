@@ -374,7 +374,7 @@ class _LoginPageState extends State<LoginPage>
                                       AppColors.warning,
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 24),
                                   _buildSocialButton(
                                     child: ShaderMask(
                                       shaderCallback: (bounds) =>
@@ -398,40 +398,6 @@ class _LoginPageState extends State<LoginPage>
                                     ),
                                     onTap: () => _showSnackbar(
                                       'Google Masuk — Segera hadir!',
-                                      AppColors.warning,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  _buildSocialButton(
-                                    child: const Icon(Icons.apple,
-                                        color: Colors.black, size: 28),
-                                    onTap: () => _showSnackbar(
-                                      'Apple Masuk — Segera hadir!',
-                                      AppColors.warning,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  _buildSocialButton(
-                                    child: Container(
-                                      width: 24,
-                                      height: 24,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF0077B5),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      alignment: Alignment.center,
-                                      child: const Text(
-                                        'in',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          fontFamily: 'Arial',
-                                        ),
-                                      ),
-                                    ),
-                                    onTap: () => _showSnackbar(
-                                      'LinkedIn Masuk — Segera hadir!',
                                       AppColors.warning,
                                     ),
                                   ),
@@ -602,6 +568,24 @@ class _RegisterPageState extends State<RegisterPage>
     _passCtrl.dispose();
     _confirmCtrl.dispose();
     super.dispose();
+  }
+
+  Widget _buildSocialButton(
+      {required Widget child, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!, width: 1.5),
+        ),
+        alignment: Alignment.center,
+        child: child,
+      ),
+    );
   }
 
   @override
@@ -849,6 +833,77 @@ class _RegisterPageState extends State<RegisterPage>
                                     ),
                                   ),
                                 ),
+                              )),
+                          const SizedBox(height: 20),
+
+                          // Social Login Divider
+                          _stagger(
+                              6,
+                              Row(
+                                children: [
+                                  Expanded(
+                                      child: Divider(
+                                          color: Colors.grey[300],
+                                          thickness: 1)),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12),
+                                    child: Text(
+                                      'Atau daftar dengan',
+                                      style: AppTypography.bodySmall.copyWith(
+                                          color: Colors.grey[500]),
+                                    ),
+                                  ),
+                                  Expanded(
+                                      child: Divider(
+                                          color: Colors.grey[300],
+                                          thickness: 1)),
+                                ],
+                              )),
+                          const SizedBox(height: 16),
+
+                          // Social Login Buttons (Facebook & Google only)
+                          _stagger(
+                              7,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildSocialButton(
+                                    child: const Icon(Icons.facebook,
+                                        color: Color(0xFF1877F2), size: 28),
+                                    onTap: () => _showSnackbar(
+                                      'Facebook Daftar — Segera hadir!',
+                                      const Color(0xFFF59E0B),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 24),
+                                  _buildSocialButton(
+                                    child: ShaderMask(
+                                      shaderCallback: (bounds) =>
+                                          const LinearGradient(
+                                        colors: [
+                                          Colors.blue,
+                                          Colors.red,
+                                          Colors.yellow,
+                                          Colors.green
+                                        ],
+                                        stops: [0.0, 0.3, 0.6, 1.0],
+                                      ).createShader(bounds),
+                                      child: const Text(
+                                        'G',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 24,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    onTap: () => _showSnackbar(
+                                      'Google Daftar — Segera hadir!',
+                                      const Color(0xFFF59E0B),
+                                    ),
+                                  ),
+                                ],
                               )),
                           const SizedBox(height: 24),
                         ],
