@@ -214,11 +214,16 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
 
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
-      final displayUrl = jsonResponse['data']?['display_url'];
-      if (displayUrl != null) {
-        return displayUrl as String;
+      final data = jsonResponse['data'];
+      if (data != null) {
+        // Prioritize 'url' as it guarantees the raw direct image file link,
+        // then fallback to 'display_url'.
+        final imageUrl = data['url'] ?? data['display_url'];
+        if (imageUrl != null) {
+          return imageUrl as String;
+        }
       }
-      throw Exception('Tautan gambar (display_url) tidak ditemukan dalam respon.');
+      throw Exception('Tautan gambar langsung (url/display_url) tidak ditemukan dalam respon ImgBB.');
     } else {
       throw Exception('Pengunggahan gambar ke ImgBB gagal dengan status: ${response.statusCode}');
     }
