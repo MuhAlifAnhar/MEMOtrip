@@ -125,6 +125,9 @@ class _ScheduleEditorDialogState extends State<ScheduleEditorDialog> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
       padding: EdgeInsets.only(
         top: AppSpacing.xl,
         left: AppSpacing.xl,
@@ -138,68 +141,69 @@ class _ScheduleEditorDialogState extends State<ScheduleEditorDialog> {
       ),
       child: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle bar
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.divider,
-                  borderRadius: AppSpacing.borderRadiusFull,
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.primarySurface,
-                    borderRadius: AppSpacing.borderRadiusMedium,
-                  ),
-                  child: Icon(
-                    widget.initialSchedule != null ? Icons.edit_calendar_rounded : Icons.add_task_rounded,
-                    color: AppColors.primary,
-                    size: 20,
+                    color: AppColors.divider,
+                    borderRadius: AppSpacing.borderRadiusFull,
                   ),
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Text(
-                  widget.initialSchedule != null ? 'Ubah Rencana Jadwal' : 'Tambah Rencana Jadwal',
-                  style: AppTypography.headlineMedium,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // Schedule Title Input
-            Text('Judul Rencana Perjalanan', style: AppTypography.labelLarge),
-            const SizedBox(height: AppSpacing.sm),
-            TextFormField(
-              controller: _titleCtrl,
-              style: AppTypography.bodyMedium,
-              validator: (val) => val == null || val.trim().isEmpty ? 'Judul tidak boleh kosong' : null,
-              decoration: InputDecoration(
-                hintText: 'Contoh: Rencana Jalan-Jalan Akhir Pekan...',
-                hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textHint),
-                filled: true,
-                fillColor: AppColors.background,
-                border: OutlineInputBorder(
-                  borderRadius: AppSpacing.borderRadiusMedium,
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.base, vertical: AppSpacing.md),
               ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
+              
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySurface,
+                      borderRadius: AppSpacing.borderRadiusMedium,
+                    ),
+                    child: Icon(
+                      widget.initialSchedule != null ? Icons.edit_calendar_rounded : Icons.add_task_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Text(
+                    widget.initialSchedule != null ? 'Ubah Rencana Jadwal' : 'Tambah Rencana Jadwal',
+                    style: AppTypography.headlineMedium,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
+  
+              // Schedule Title Input
+              Text('Judul Rencana Perjalanan', style: AppTypography.labelLarge),
+              const SizedBox(height: AppSpacing.sm),
+              TextFormField(
+                controller: _titleCtrl,
+                style: AppTypography.bodyMedium,
+                validator: (val) => val == null || val.trim().isEmpty ? 'Judul tidak boleh kosong' : null,
+                decoration: InputDecoration(
+                  hintText: 'Contoh: Rencana Jalan-Jalan Akhir Pekan...',
+                  hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textHint),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: AppSpacing.borderRadiusMedium,
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.base, vertical: AppSpacing.md),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
 
             // Destinations Header with Add Button
             Row(
@@ -396,6 +400,7 @@ class _ScheduleEditorDialogState extends State<ScheduleEditorDialog> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
