@@ -150,48 +150,85 @@ class _LoginPageState extends State<LoginPage>
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // ─── Background Decorative Shapes ───────────────────
+          // ─── Animated Background Decorative Shapes ──────────
+          // Top Right Circle
           Positioned(
             top: -120,
             right: -80,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8EAF6).withOpacity(0.6),
-                shape: BoxShape.circle,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 1200),
+              curve: Curves.easeOutCubic,
+              builder: (_, v, child) => Transform.scale(
+                scale: 0.3 + 0.7 * v,
+                child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
+              ),
+              child: Container(
+                width: 260,
+                height: 260,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EAF6).withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
           ),
+          // Middle Left Circle
           Positioned(
             left: -100,
             top: size.height * 0.35,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8EAF6).withOpacity(0.6),
-                shape: BoxShape.circle,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 1400),
+              curve: Curves.easeOutCubic,
+              builder: (_, v, child) => Transform.scale(
+                scale: 0.3 + 0.7 * v,
+                child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
+              ),
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EAF6).withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
           ),
+          // Bottom Right Circle
           Positioned(
             right: -100,
             bottom: size.height * 0.15,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8EAF6).withOpacity(0.6),
-                shape: BoxShape.circle,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 1600),
+              curve: Curves.easeOutCubic,
+              builder: (_, v, child) => Transform.scale(
+                scale: 0.3 + 0.7 * v,
+                child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
+              ),
+              child: Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EAF6).withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
           ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 250,
+          // Bottom Wave with slide-up animation
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 1000),
+            curve: Curves.easeOutCubic,
+            builder: (_, v, child) => Positioned(
+              bottom: -80 * (1 - v),
+              left: 0,
+              right: 0,
+              height: 250,
+              child: Opacity(opacity: v.clamp(0.0, 1.0), child: child!),
+            ),
             child: ClipPath(
               clipper: BottomWaveClipper(),
               child: Container(
@@ -352,13 +389,29 @@ class _LoginPageState extends State<LoginPage>
                                 ),
                               )),
                           const SizedBox(height: 24),
+                          // Social Login Divider
                           _stagger(
                               5,
-                              Text(
-                                'Atau masuk dengan',
-                                style: AppTypography.bodySmall.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                      child: Divider(
+                                          color: Colors.grey[300],
+                                          thickness: 1)),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12),
+                                    child: Text(
+                                      'Atau masuk dengan',
+                                      style: AppTypography.bodySmall.copyWith(
+                                          color: Colors.grey[500]),
+                                    ),
+                                  ),
+                                  Expanded(
+                                      child: Divider(
+                                          color: Colors.grey[300],
+                                          thickness: 1)),
+                                ],
                               )),
                           const SizedBox(height: 16),
                           _stagger(
@@ -596,17 +649,26 @@ class _RegisterPageState extends State<RegisterPage>
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // ─── Background Decorative Shapes ───────────────────
+          // ─── Animated Background Decorative Shapes ──────────
           // Top Right Circle
           Positioned(
             top: -120,
             right: -80,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8EAF6).withOpacity(0.6),
-                shape: BoxShape.circle,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 1200),
+              curve: Curves.easeOutCubic,
+              builder: (_, v, child) => Transform.scale(
+                scale: 0.3 + 0.7 * v,
+                child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
+              ),
+              child: Container(
+                width: 260,
+                height: 260,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EAF6).withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
           ),
@@ -614,12 +676,21 @@ class _RegisterPageState extends State<RegisterPage>
           Positioned(
             left: -100,
             top: size.height * 0.35,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8EAF6).withOpacity(0.6),
-                shape: BoxShape.circle,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 1400),
+              curve: Curves.easeOutCubic,
+              builder: (_, v, child) => Transform.scale(
+                scale: 0.3 + 0.7 * v,
+                child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
+              ),
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EAF6).withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
           ),
@@ -627,21 +698,36 @@ class _RegisterPageState extends State<RegisterPage>
           Positioned(
             right: -100,
             bottom: size.height * 0.15,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8EAF6).withOpacity(0.6),
-                shape: BoxShape.circle,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 1600),
+              curve: Curves.easeOutCubic,
+              builder: (_, v, child) => Transform.scale(
+                scale: 0.3 + 0.7 * v,
+                child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
+              ),
+              child: Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EAF6).withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
           ),
-          // Bottom Wave Curve
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 250,
+          // Bottom Wave with slide-up animation
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 1000),
+            curve: Curves.easeOutCubic,
+            builder: (_, v, child) => Positioned(
+              bottom: -80 * (1 - v),
+              left: 0,
+              right: 0,
+              height: 250,
+              child: Opacity(opacity: v.clamp(0.0, 1.0), child: child!),
+            ),
             child: ClipPath(
               clipper: BottomWaveClipper(),
               child: Container(
