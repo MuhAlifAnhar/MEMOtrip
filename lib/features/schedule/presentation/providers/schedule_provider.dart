@@ -1,38 +1,34 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../data/mock_schedule_data.dart';
+import '../../../../core/providers/auth_provider.dart';
 import '../../domain/entities/schedule.dart';
 
 // Expose entities
 export '../../domain/entities/schedule.dart';
 
 class SchedulesNotifier extends StateNotifier<List<Schedule>> {
-  SchedulesNotifier() : super([]) {
-    _loadSchedules();
+  SchedulesNotifier(this.userId) : super([]) {
+    if (userId != null) {
+      _loadSchedules();
+    }
   }
 
+  final String? userId;
   final _db = FirebaseFirestore.instance;
 
   Future<void> _loadSchedules() async {
+    if (userId == null) return;
     try {
-      final snap = await _db.collection('schedules').get();
-      if (snap.docs.isEmpty) {
-        await _seedSchedules();
-      } else {
-        state = snap.docs.map((doc) => _fromMap(doc.id, doc.data())).toList();
-      }
+      final snap = await _db
+          .collection('schedules')
+          .where('userId', isEqualTo: userId)
+          .get();
+      
+      state = snap.docs.map((doc) => _fromMap(doc.id, doc.data())).toList();
     } catch (e) {
       print('Error loading schedules: $e');
-      state = List.from(MockScheduleData.schedules);
+      state = [];
     }
-  }
-
-  Future<void> _seedSchedules() async {
-    final initial = MockScheduleData.schedules;
-    for (final s in initial) {
-      await _db.collection('schedules').doc(s.id).set(_toMap(s));
-    }
-    state = initial;
   }
 
   Schedule _fromMap(String id, Map<String, dynamic> map) {
@@ -81,16 +77,21 @@ class SchedulesNotifier extends StateNotifier<List<Schedule>> {
   }
 
   void addSchedule(Schedule schedule) {
-    state = [...state, schedule];
-    _db.collection('schedules').doc(schedule.id).set(_toMap(schedule));
+    if (userId == null) return;
+    // Ensure schedule has correct user id
+    final newSchedule = schedule.copyWith(userId: userId);
+    state = [...state, newSchedule];
+    _db.collection('schedules').doc(newSchedule.id).set(_toMap(newSchedule));
   }
 
   void updateSchedule(Schedule schedule) {
+    if (userId == null) return;
     state = state.map((s) => s.id == schedule.id ? schedule : s).toList();
     _db.collection('schedules').doc(schedule.id).update(_toMap(schedule));
   }
 
   void deleteSchedule(String id) {
+    if (userId == null) return;
     state = state.where((s) => s.id != id).toList();
     _db.collection('schedules').doc(id).delete();
   }
@@ -98,5 +99,6 @@ class SchedulesNotifier extends StateNotifier<List<Schedule>> {
 
 final schedulesProvider =
     StateNotifierProvider<SchedulesNotifier, List<Schedule>>((ref) {
-  return SchedulesNotifier();
+  final user = ref.watch(authUserProvider).value;
+  return SchedulesNotifier(user?.uid);
 });
