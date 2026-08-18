@@ -49,8 +49,12 @@ class AdminSidebar extends ConsumerWidget {
               decoration:
                   const BoxDecoration(gradient: AppColors.primaryGradient),
               child: Row(children: [
-                const Icon(Icons.travel_explore_rounded,
-                    color: Colors.white, size: 28),
+                Image.asset(
+                  'assets/images/logo_memotrip.png',
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.contain,
+                ),
                 const SizedBox(width: AppSpacing.md),
                 Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
