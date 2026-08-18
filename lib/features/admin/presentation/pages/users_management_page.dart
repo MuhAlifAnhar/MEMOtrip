@@ -104,19 +104,20 @@ class _UsersManagementPageState extends ConsumerState<UsersManagementPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Kelola User', style: AppTypography.headlineLarge.copyWith(color: Colors.white)),
+                Text('Kelola User', style: AppTypography.headlineLarge.copyWith(color: AppColors.textPrimary)),
                 const SizedBox(height: AppSpacing.md),
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white,
                     borderRadius: AppSpacing.borderRadiusMedium,
+                    border: Border.all(color: Colors.grey.shade300, width: 1),
                   ),
                   child: TextField(
-                    style: const TextStyle(color: Colors.white),
+                    style: AppTypography.bodyMedium.copyWith(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Cari berdasarkan nama atau email...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                      prefixIcon: const Icon(Icons.search_rounded, color: Colors.white70),
+                      hintStyle: AppTypography.bodyMedium.copyWith(color: Colors.grey.shade600),
+                      prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade700),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     ),
@@ -163,7 +164,7 @@ class _UsersManagementPageState extends ConsumerState<UsersManagementPage>
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
                       child: Text(
                         'Total: ${filteredDocs.length} Pengguna',
-                        style: AppTypography.labelMedium.copyWith(color: Colors.white70),
+                        style: AppTypography.labelMedium.copyWith(color: AppColors.textSecondary),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
