@@ -21,6 +21,8 @@ import '../../../../core/providers/auth_provider.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../destination/presentation/providers/destination_provider.dart';
+import '../../../../core/providers/role_provider.dart';
+import '../../../../core/enums/user_role.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -62,6 +64,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final currentUser = ref.watch(authUserProvider).value;
     final userDoc = ref.watch(userDocProvider).value;
     final displayName = userDoc?['name'] ?? currentUser?.displayName ?? 'Traveler';
+    final userRole = ref.watch(userRoleProvider);
+    final isAdmin = ref.watch(isAdminProvider);
     final photoURL = userDoc?['photoUrl'] ?? currentUser?.photoURL ?? PlaceholderImages.avatar();
     final currentUserId = currentUser?.uid ?? 'u1';
 
@@ -107,13 +111,32 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                           ),
                           const SizedBox(width: AppSpacing.base),
                           Expanded(
-                              child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                Text(displayName,
-                                    style: AppTypography.headlineLarge),
-                                Text(currentUser?.email ?? 'traveler@memotrip.id',
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(displayName,
+                                              style: AppTypography.headlineLarge,
+                                              overflow: TextOverflow.ellipsis),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: userRole == UserRole.superAdmin ? Colors.amber.shade700 : (userRole == UserRole.admin ? AppColors.primary : Colors.grey.shade600),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            userRole.label,
+                                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(currentUser?.email ?? 'traveler@memotrip.id',
                                     style: AppTypography.bodySmall),
                               ])),
                           Container(
@@ -209,18 +232,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                 page: const SettingsPage()),
                           )),
                     ),
-                    const Divider(indent: 20, endIndent: 20, height: 32),
-                    _buildStaggered(
-                      index: 6,
-                      child: _menu(
-                          context,
-                          Icons.admin_panel_settings_rounded,
-                          'Panel Admin',
-                          'Dashboard admin (web)',
-                          isAdmin: true,
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/admin')),
-                    ),
+                    if (isAdmin) ...[
+                      const Divider(indent: 20, endIndent: 20, height: 32),
+                      _buildStaggered(
+                        index: 6,
+                        child: _menu(
+                            context,
+                            Icons.admin_panel_settings_rounded,
+                            'Panel Admin',
+                            'Dashboard admin (web)',
+                            isAdmin: true,
+                            onTap: () =>
+                                Navigator.pushNamed(context, '/admin')),
+                      ),
+                    ],
                     _buildStaggered(
                       index: 7,
                       child: _menu(context, Icons.logout_rounded,

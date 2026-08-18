@@ -77,6 +77,10 @@ class _AuthGateState extends State<AuthGate> with TickerProviderStateMixin {
     _authResolved = true;
     _resolvedUser = user;
 
+    if (user != null) {
+      AuthService.ensureUserRole();
+    }
+
     // Ensure splash shows for at least 2.5 seconds total
     await Future.delayed(const Duration(milliseconds: 2500));
     if (!mounted) return;

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../enums/user_role.dart';
 
 /// Authentication Service — wraps Firebase Auth for clean architecture.
 ///
@@ -67,6 +68,7 @@ class AuthService {
         'uid': user.uid,
         'name': name.trim(),
         'email': email.trim(),
+        'role': 'user',
         'createdAt': DateTime.now().toIso8601String(),
       });
     }
@@ -150,6 +152,52 @@ class AuthService {
         return 'Tidak ada koneksi internet.';
       default:
         return e.message ?? 'Terjadi kesalahan. Silakan coba lagi.';
+    }
+  }
+
+  /// Get user role from Firestore
+  static Future<UserRole> getUserRole(String uid) async {
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    return UserRole.fromFirestore(doc.data()?['role']);
+  }
+
+  /// Update a user's role (Super Admin only)
+  static Future<void> updateUserRole(String uid, UserRole role) async {
+    await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      'role': role.toFirestore(),
+    });
+  }
+
+  /// Ensure existing users have a role field (migration)
+  /// Called once on app startup for the current user.
+  static Future<void> ensureUserRole() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    if (doc.exists && !doc.data()!.containsKey('role')) {
+      // Assign role based on email
+      String role = 'user';
+      if (user.email == 'sultankautsar21@gmail.com') {
+        role = 'super_admin';
+      } else if (user.email == 'jennifer@gmail.com' || user.email == 'syafitrimarhua@gmail.com') {
+        role = 'admin';
+      }
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({'role': role});
+    } else if (!doc.exists) {
+      // Create user doc if missing
+      String role = 'user';
+      if (user.email == 'sultankautsar21@gmail.com') {
+        role = 'super_admin';
+      } else if (user.email == 'jennifer@gmail.com' || user.email == 'syafitrimarhua@gmail.com') {
+        role = 'admin';
+      }
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'name': user.displayName ?? '',
+        'email': user.email ?? '',
+        'role': role,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
     }
   }
 }

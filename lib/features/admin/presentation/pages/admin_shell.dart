@@ -10,6 +10,8 @@ import 'devices_page.dart';
 import 'destinations_page.dart';
 import 'moderation_page.dart';
 import 'analytics_page.dart';
+import 'users_management_page.dart';
+import '../../../../core/providers/role_provider.dart';
 
 class AdminShell extends ConsumerStatefulWidget {
   const AdminShell({super.key});
@@ -26,21 +28,41 @@ class _AdminShellState extends ConsumerState<AdminShell>
   late final Animation<double> _fadeAnim;
   late final Animation<Offset> _slideAnim;
 
-  final List<Widget> _pages = const [
-    OverviewPage(),
-    DevicesPage(),
-    DestinationsPage(),
-    ModerationPage(),
-    AnalyticsPage(),
-  ];
+  List<Widget> get _pages {
+    final isSuper = ref.watch(isSuperAdminProvider);
+    return [
+      const OverviewPage(),
+      const DevicesPage(),
+      const DestinationsPage(),
+      const ModerationPage(),
+      const AnalyticsPage(),
+      if (isSuper) const UsersManagementPage(),
+    ];
+  }
 
-  static const _navLabels = [
-    'Overview',
-    'Perangkat IoT',
-    'Destinasi',
-    'Moderasi',
-    'Analitik',
-  ];
+  List<String> get _navLabels {
+    final isSuper = ref.watch(isSuperAdminProvider);
+    return [
+      'Overview',
+      'Perangkat IoT',
+      'Destinasi',
+      'Moderasi',
+      'Analitik',
+      if (isSuper) 'Kelola User',
+    ];
+  }
+
+  List<(IconData, String)> get _navItems {
+    final isSuper = ref.watch(isSuperAdminProvider);
+    return [
+      (Icons.dashboard_rounded, 'Ringkasan'),
+      (Icons.sensors_rounded, 'Perangkat IoT'),
+      (Icons.map_rounded, 'Destinasi'),
+      (Icons.rate_review_rounded, 'Moderasi'),
+      (Icons.analytics_rounded, 'Analitik'),
+      if (isSuper) (Icons.people_rounded, 'Kelola User'),
+    ];
+  }
 
   @override
   void initState() {
@@ -92,6 +114,7 @@ class _AdminShellState extends ConsumerState<AdminShell>
                 AdminSidebar(
                   selectedIndex: _selectedIndex,
                   onTap: _onPageSelected,
+                  navItems: _navItems,
                 ),
                 const VerticalDivider(width: 1),
                 Expanded(
@@ -164,6 +187,7 @@ class _AdminShellState extends ConsumerState<AdminShell>
               child: AdminSidebar(
                 selectedIndex: _selectedIndex,
                 onTap: _onPageSelected,
+                navItems: _navItems,
                 isDrawerMode: true,
               ),
             ),

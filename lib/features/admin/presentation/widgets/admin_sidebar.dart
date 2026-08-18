@@ -4,26 +4,22 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/providers/role_provider.dart';
+import '../../../../core/enums/user_role.dart';
 
 class AdminSidebar extends ConsumerWidget {
   final int selectedIndex;
   final ValueChanged<int> onTap;
   final bool isDrawerMode;
+  final List<(IconData, String)> navItems;
 
   const AdminSidebar({
     super.key,
     required this.selectedIndex,
     required this.onTap,
+    required this.navItems,
     this.isDrawerMode = false,
   });
-
-  static const _items = [
-    (Icons.dashboard_rounded, 'Ringkasan'),
-    (Icons.sensors_rounded, 'Perangkat IoT'),
-    (Icons.map_rounded, 'Destinasi'),
-    (Icons.rate_review_rounded, 'Moderasi'),
-    (Icons.analytics_rounded, 'Analitik'),
-  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,6 +31,7 @@ class AdminSidebar extends ConsumerWidget {
     final initials = displayName.isNotEmpty
         ? displayName.substring(0, 1).toUpperCase()
         : 'A';
+    final userRole = ref.watch(userRoleProvider);
 
     return Container(
       width: isDrawerMode ? null : 260,
@@ -70,8 +67,8 @@ class AdminSidebar extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.base),
           // Nav Items — staggered entrance + animated active state
-          ...List.generate(_items.length, (i) {
-            final (icon, label) = _items[i];
+          ...List.generate(navItems.length, (i) {
+            final (icon, label) = navItems[i];
             final isActive = selectedIndex == i;
             return TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.0, end: 1.0),
@@ -191,6 +188,18 @@ class AdminSidebar extends ConsumerWidget {
                       Text(email,
                           style: AppTypography.caption,
                           overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: userRole == UserRole.superAdmin ? Colors.amber.shade700 : AppColors.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          userRole.label,
+                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                        ),
+                      ),
                     ])),
               ]),
             ),
