@@ -89,6 +89,59 @@ class _UsersManagementPageState extends ConsumerState<UsersManagementPage>
     }
   }
 
+  Future<void> _deleteUser(String userId, String userName) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusCard),
+        title: Text('Hapus Pengguna', style: AppTypography.headlineSmall),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus pengguna $userName? Tindakan ini tidak dapat dibatalkan.',
+          style: AppTypography.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Batal', style: AppTypography.labelMedium.copyWith(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusMedium),
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(userId).delete();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Pengguna $userName berhasil dihapus'),
+              backgroundColor: AppColors.primary,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal menghapus pengguna: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authUserProvider).value;
@@ -234,25 +287,33 @@ class _UsersManagementPageState extends ConsumerState<UsersManagementPage>
                                 subtitle: Text(email, style: AppTypography.bodySmall),
                                 trailing: isMe || role == UserRole.superAdmin
                                     ? const SizedBox(width: 48) // placeholder to align properly if not changing role
-                                    : DropdownButtonHideUnderline(
-                                        child: DropdownButton<UserRole>(
-                                          icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
-                                          items: const [
-                                            DropdownMenuItem(
-                                              value: UserRole.user,
+                                    : PopupMenuButton<String>(
+                                        icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
+                                        onSelected: (action) {
+                                          if (action == 'make_user' && role != UserRole.user) {
+                                            _changeRole(userId, name, role, UserRole.user);
+                                          } else if (action == 'make_admin' && role != UserRole.admin) {
+                                            _changeRole(userId, name, role, UserRole.admin);
+                                          } else if (action == 'delete') {
+                                            _deleteUser(userId, name);
+                                          }
+                                        },
+                                        itemBuilder: (context) => [
+                                          if (role != UserRole.user)
+                                            const PopupMenuItem(
+                                              value: 'make_user',
                                               child: Text('Jadikan User', style: TextStyle(fontSize: 14)),
                                             ),
-                                            DropdownMenuItem(
-                                              value: UserRole.admin,
+                                          if (role != UserRole.admin)
+                                            const PopupMenuItem(
+                                              value: 'make_admin',
                                               child: Text('Jadikan Admin', style: TextStyle(fontSize: 14)),
                                             ),
-                                          ],
-                                          onChanged: (newRole) {
-                                            if (newRole != null && newRole != role) {
-                                              _changeRole(userId, name, role, newRole);
-                                            }
-                                          },
-                                        ),
+                                          const PopupMenuItem(
+                                            value: 'delete',
+                                            child: Text('Hapus User', style: TextStyle(fontSize: 14, color: Colors.red)),
+                                          ),
+                                        ],
                                       ),
                               ),
                             ),
