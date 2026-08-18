@@ -387,8 +387,38 @@ class _ScheduleEditorDialogState extends State<ScheduleEditorDialog> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
+                      final title = _titleCtrl.text.trim();
+                      
+                      void showError(String message) {
+                        ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(message),
+                            backgroundColor: AppColors.error,
+                            behavior: SnackBarBehavior.floating,
+                            margin: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).size.height > 150 
+                                  ? MediaQuery.of(context).size.height - 150 
+                                  : 20,
+                              left: 20,
+                              right: 20,
+                            ),
+                          ),
+                        );
+                      }
+
+                      if (title.isEmpty) {
+                        showError('Judul rencana perjalanan wajib diisi!');
+                        return;
+                      }
+
+                      if (_selectedItems.isEmpty) {
+                        showError('Silakan tambahkan minimal 1 destinasi sebelum menyimpan rencana perjalanan Anda!');
+                        return;
+                      }
+
                       if (_formKey.currentState!.validate()) {
-                        widget.onSave(_titleCtrl.text.trim(), _selectedItems);
+                        widget.onSave(title, _selectedItems);
                       }
                     },
                     icon: const Icon(Icons.check_rounded, size: 18),
