@@ -2,12 +2,13 @@ import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../enums/user_role.dart';
 
 /// Authentication Service — wraps Firebase Auth for clean architecture.
 ///
 /// Provides email/password sign-in, registration, sign-out,
-/// and an auth state stream for reactive UI guarding.
+/// Google Sign-In, and an auth state stream for reactive UI guarding.
 class AuthService {
   AuthService._();
 
@@ -74,6 +75,49 @@ class AuthService {
     }
 
     return credential;
+  }
+
+  // ─── Google Sign-In ───────────────────────────────────
+
+  /// Sign in with Google and automatically create/update user document.
+  static Future<UserCredential?> signInWithGoogle() async {
+    // Trigger the authentication flow
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+    if (googleUser == null) {
+      // User canceled the sign-in
+      return null;
+    }
+
+    // Obtain the auth details from the request
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+    // Create a new credential
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    // Once signed in, return the UserCredential
+    final UserCredential userCredential = await _auth.signInWithCredential(credential);
+
+    // Create user document in Cloud Firestore if it doesn't exist
+    final user = userCredential.user;
+    if (user != null) {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (!userDoc.exists) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'name': user.displayName ?? 'Google User',
+          'email': user.email ?? '',
+          'photoUrl': user.photoURL ?? '',
+          'role': 'user',
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+      }
+    }
+
+    return userCredential;
   }
 
   // ─── Image Upload ─────────────────────────────────────

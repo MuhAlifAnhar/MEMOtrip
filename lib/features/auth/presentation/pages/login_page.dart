@@ -449,10 +449,7 @@ class _LoginPageState extends State<LoginPage>
                                         ),
                                       ),
                                     ),
-                                    onTap: () => _showSnackbar(
-                                      'Google Masuk — Segera hadir!',
-                                      AppColors.warning,
-                                    ),
+                                    onTap: _handleGoogleSignIn,
                                   ),
                                 ],
                               )),
@@ -551,6 +548,22 @@ class _LoginPageState extends State<LoginPage>
       if (mounted) _showSnackbar(AuthService.friendlyError(e), AppColors.error);
     } catch (e) {
       if (mounted) _showSnackbar('Terjadi kesalahan: $e', AppColors.error);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _loading = true);
+    try {
+      final cred = await AuthService.signInWithGoogle();
+      if (cred != null) {
+        // AuthGate will redirect automatically
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) _showSnackbar(AuthService.friendlyError(e), AppColors.error);
+    } catch (e) {
+      if (mounted) _showSnackbar('Login Google gagal: $e', AppColors.error);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -984,10 +997,7 @@ class _RegisterPageState extends State<RegisterPage>
                                         ),
                                       ),
                                     ),
-                                    onTap: () => _showSnackbar(
-                                      'Google Daftar — Segera hadir!',
-                                      const Color(0xFFF59E0B),
-                                    ),
+                                    onTap: _handleGoogleSignIn,
                                   ),
                                 ],
                               )),
@@ -1092,6 +1102,23 @@ class _RegisterPageState extends State<RegisterPage>
       if (mounted) _showSnackbar(AuthService.friendlyError(e), AppColors.error);
     } catch (e) {
       if (mounted) _showSnackbar('Terjadi kesalahan: $e', AppColors.error);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _loading = true);
+    try {
+      final cred = await AuthService.signInWithGoogle();
+      if (cred != null) {
+        if (!mounted) return;
+        Navigator.pop(context); // close register page, AuthGate handles rest
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) _showSnackbar(AuthService.friendlyError(e), AppColors.error);
+    } catch (e) {
+      if (mounted) _showSnackbar('Pendaftaran Google gagal: $e', AppColors.error);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
