@@ -422,10 +422,7 @@ class _LoginPageState extends State<LoginPage>
                                   _buildSocialButton(
                                     child: const Icon(Icons.facebook,
                                         color: Color(0xFF1877F2), size: 28),
-                                    onTap: () => _showSnackbar(
-                                      'Facebook Masuk — Segera hadir!',
-                                      AppColors.warning,
-                                    ),
+                                    onTap: _handleFacebookSignIn,
                                   ),
                                   const SizedBox(width: 24),
                                   _buildSocialButton(
@@ -564,6 +561,22 @@ class _LoginPageState extends State<LoginPage>
       if (mounted) _showSnackbar(AuthService.friendlyError(e), AppColors.error);
     } catch (e) {
       if (mounted) _showSnackbar('Login Google gagal: $e', AppColors.error);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _handleFacebookSignIn() async {
+    setState(() => _loading = true);
+    try {
+      final cred = await AuthService.signInWithFacebook();
+      if (cred != null) {
+        // AuthGate will redirect automatically
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) _showSnackbar(AuthService.friendlyError(e), AppColors.error);
+    } catch (e) {
+      if (mounted) _showSnackbar('Login Facebook gagal: $e', AppColors.error);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -970,10 +983,7 @@ class _RegisterPageState extends State<RegisterPage>
                                   _buildSocialButton(
                                     child: const Icon(Icons.facebook,
                                         color: Color(0xFF1877F2), size: 28),
-                                    onTap: () => _showSnackbar(
-                                      'Facebook Daftar — Segera hadir!',
-                                      const Color(0xFFF59E0B),
-                                    ),
+                                    onTap: _handleFacebookSignIn,
                                   ),
                                   const SizedBox(width: 24),
                                   _buildSocialButton(
@@ -1119,6 +1129,23 @@ class _RegisterPageState extends State<RegisterPage>
       if (mounted) _showSnackbar(AuthService.friendlyError(e), AppColors.error);
     } catch (e) {
       if (mounted) _showSnackbar('Pendaftaran Google gagal: $e', AppColors.error);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _handleFacebookSignIn() async {
+    setState(() => _loading = true);
+    try {
+      final cred = await AuthService.signInWithFacebook();
+      if (cred != null) {
+        if (!mounted) return;
+        Navigator.pop(context); // close register page, AuthGate handles rest
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) _showSnackbar(AuthService.friendlyError(e), AppColors.error);
+    } catch (e) {
+      if (mounted) _showSnackbar('Pendaftaran Facebook gagal: $e', AppColors.error);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

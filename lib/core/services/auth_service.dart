@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import '../enums/user_role.dart';
 
 /// Authentication Service — wraps Firebase Auth for clean architecture.
@@ -120,6 +121,45 @@ class AuthService {
     return userCredential;
   }
 
+  // ─── Facebook Sign-In ─────────────────────────────────
+
+  /// Sign in with Facebook and automatically create/update user document.
+  static Future<UserCredential?> signInWithFacebook() async {
+    // Trigger the authentication flow
+    final LoginResult loginResult = await FacebookAuth.instance.login();
+
+    if (loginResult.status != LoginStatus.success) {
+      // User canceled the sign-in or there was an error
+      return null;
+    }
+
+    // Create a new credential
+    final OAuthCredential credential = FacebookAuthProvider.credential(
+      loginResult.accessToken!.tokenString,
+    );
+
+    // Once signed in, return the UserCredential
+    final UserCredential userCredential = await _auth.signInWithCredential(credential);
+
+    // Create user document in Cloud Firestore if it doesn't exist
+    final user = userCredential.user;
+    if (user != null) {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (!userDoc.exists) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'name': user.displayName ?? 'Facebook User',
+          'email': user.email ?? '',
+          'photoUrl': user.photoURL ?? '',
+          'role': 'user',
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+      }
+    }
+
+    return userCredential;
+  }
+
   // ─── Image Upload ─────────────────────────────────────
   /// Uploads profile picture bytes to Firebase Storage and returns the download URL.
   static Future<String> uploadProfilePicture({
@@ -166,6 +206,11 @@ class AuthService {
       await GoogleSignIn().signOut();
     } catch (_) {
       // Ignore errors if not signed in with Google
+    }
+    try {
+      await FacebookAuth.instance.logOut();
+    } catch (_) {
+      // Ignore errors if not signed in with Facebook
     }
     await _auth.signOut();
   }
