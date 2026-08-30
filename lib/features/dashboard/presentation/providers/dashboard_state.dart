@@ -1,5 +1,4 @@
 import '../../../../core/services/bmkg_weather_service.dart';
-import '../../../../core/services/mock_iot_service.dart';
 import '../../../dashboard/domain/entities/sensor_reading.dart';
 
 class DashboardState {
@@ -17,6 +16,16 @@ class DashboardState {
   final double simulatedLatencyMs;
   final bool isRefreshingIoT;
 
+  // ─── Real IoT Integration Fields ─────────────────────────
+  /// Number of faces detected by Raspberry Pi camera (null = no real data).
+  final int? detectedFaces;
+
+  /// Whether the current IoT data originates from a real device (Raspberry Pi).
+  final bool isUsingRealIoT;
+
+  /// Error message when Raspberry Pi connection fails (app falls back to mock).
+  final String? iotError;
+
   const DashboardState({
     this.selectedLocationId,
     this.isLoadingWeather = true,
@@ -29,6 +38,9 @@ class DashboardState {
     this.deviceStatuses = const [],
     this.simulatedLatencyMs = 0.0,
     this.isRefreshingIoT = false,
+    this.detectedFaces,
+    this.isUsingRealIoT = false,
+    this.iotError,
   });
 
   DashboardState copyWith({
@@ -43,8 +55,12 @@ class DashboardState {
     List<DeviceStatus>? deviceStatuses,
     double? simulatedLatencyMs,
     bool? isRefreshingIoT,
+    int? detectedFaces,
+    bool? isUsingRealIoT,
+    String? iotError,
     bool clearLocationId = false,
     bool clearWeatherError = false,
+    bool clearIoTError = false,
   }) {
     return DashboardState(
       selectedLocationId:
@@ -59,6 +75,9 @@ class DashboardState {
       deviceStatuses: deviceStatuses ?? this.deviceStatuses,
       simulatedLatencyMs: simulatedLatencyMs ?? this.simulatedLatencyMs,
       isRefreshingIoT: isRefreshingIoT ?? this.isRefreshingIoT,
+      detectedFaces: detectedFaces ?? this.detectedFaces,
+      isUsingRealIoT: isUsingRealIoT ?? this.isUsingRealIoT,
+      iotError: clearIoTError ? null : (iotError ?? this.iotError),
     );
   }
 }

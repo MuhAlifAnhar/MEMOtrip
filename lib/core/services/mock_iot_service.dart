@@ -1,5 +1,6 @@
 import 'dart:math';
 import '../../features/dashboard/domain/entities/sensor_reading.dart';
+import 'raspberry_pi_service.dart';
 
 /// MockIoTService — Dynamic IoT Simulation Engine
 ///
@@ -16,6 +17,10 @@ import '../../features/dashboard/domain/entities/sensor_reading.dart';
 ///
 /// EWS Threshold:
 ///   - Suhu > 35 °C triggers danger mode (red UI).
+///
+/// Integration Note:
+///   Pantai Losari uses REAL data from Raspberry Pi 4 + Webcam when available.
+///   CPI Makassar and Masjid 99 Kubah remain mock/simulated.
 class MockIoTService {
   MockIoTService._();
 
@@ -114,7 +119,7 @@ class MockIoTService {
   /// Whether a temperature value triggers danger mode.
   static bool isDanger(double suhu) => suhu > ewsTemperatureThreshold;
 
-  // ─── Public API ─────────────────────────────────────────
+  // ─── Public API (Synchronous / Mock) ────────────────────
 
   /// Generate fresh, randomised sensor readings for all 3 locations.
   /// Each call produces new values — simulating a device refresh/poll.
@@ -183,6 +188,87 @@ class MockIoTService {
       return snapshots.isNotEmpty ? snapshots.first : null;
     }
   }
+
+  // ═══════════════════════════════════════════════════════════
+  //  Async API — Integrates Real Raspberry Pi Data for Losari
+  // ═══════════════════════════════════════════════════════════
+
+  /// Result container from async IoT data fetch.
+  /// Contains data lists + metadata about whether real data was obtained.
+  static Future<IoTDataResult> fetchIntegratedData() async {
+    // 1. Generate mock data for all 3 locations first (baseline).
+    final mockSensors = generateSensorReadings();
+    final mockSnapshots = generateCameraSnapshots();
+    final mockDevices = generateDeviceStatuses();
+
+    // 2. Attempt to fetch real data from Raspberry Pi for Losari.
+    CrowdDetectionResult? realData;
+    String? iotError;
+    try {
+      realData = await RaspberryPiService.fetchAndSync();
+    } catch (e) {
+      iotError = 'Gagal terhubung ke perangkat IoT: $e';
+    }
+
+    if (realData == null && iotError == null) {
+      iotError = 'Perangkat IoT tidak merespon — menggunakan data simulasi.';
+    }
+
+    // 3. If we got real data, override Losari's crowd level in snapshots.
+    final finalSnapshots = mockSnapshots.map((snap) {
+      if (snap.locationId == 'losari' && realData != null) {
+        return CameraSnapshot(
+          locationId: snap.locationId,
+          locationName: snap.locationName,
+          imageUrl: snap.imageUrl,
+          crowdLevel: realData.crowdLevel,
+          timestamp: realData.timestamp,
+        );
+      }
+      return snap;
+    }).toList();
+
+    // 4. Mark Losari device as real in device statuses.
+    final finalDevices = mockDevices.map((d) {
+      if (d.locationId == 'losari') {
+        return DeviceStatus(
+          locationId: d.locationId,
+          locationName: d.locationName,
+          isOnline: realData != null,
+          lastHeartbeat: realData?.timestamp ?? d.lastHeartbeat,
+        );
+      }
+      return d;
+    }).toList();
+
+    return IoTDataResult(
+      sensorReadings: mockSensors,
+      cameraSnapshots: finalSnapshots,
+      deviceStatuses: finalDevices,
+      detectedFaces: realData?.totalFaces,
+      isUsingRealIoT: realData != null,
+      iotError: iotError,
+    );
+  }
+}
+
+/// Aggregated result from [MockIoTService.fetchIntegratedData].
+class IoTDataResult {
+  final List<SensorReading> sensorReadings;
+  final List<CameraSnapshot> cameraSnapshots;
+  final List<DeviceStatus> deviceStatuses;
+  final int? detectedFaces;
+  final bool isUsingRealIoT;
+  final String? iotError;
+
+  const IoTDataResult({
+    required this.sensorReadings,
+    required this.cameraSnapshots,
+    required this.deviceStatuses,
+    this.detectedFaces,
+    this.isUsingRealIoT = false,
+    this.iotError,
+  });
 }
 
 /// Internal location definition helper.
@@ -191,3 +277,4 @@ class _LocationDef {
   final String name;
   const _LocationDef({required this.id, required this.name});
 }
+

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/bmkg_weather_service.dart';
 import '../../../../core/services/location_service.dart';
@@ -15,20 +16,46 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     refreshIoTData();
   }
 
+  Timer? _iotTimer;
+
+  @override
+  void dispose() {
+    _iotTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> refreshIoTData() async {
-    state = state.copyWith(isRefreshingIoT: true);
+    state = state.copyWith(isRefreshingIoT: true, clearIoTError: true);
 
     final stopwatch = Stopwatch()..start();
-    // Simulate network latency as requested
-    await Future.delayed(const Duration(seconds: 2));
+    
+    // Fetch integrated data (calls Raspberry Pi API for Pantai Losari)
+    final result = await MockIoTService.fetchIntegratedData();
+    
     stopwatch.stop();
 
     state = state.copyWith(
-      sensorReadings: MockIoTService.generateSensorReadings(),
-      cameraSnapshots: MockIoTService.generateCameraSnapshots(),
-      deviceStatuses: MockIoTService.generateDeviceStatuses(),
+      sensorReadings: result.sensorReadings,
+      cameraSnapshots: result.cameraSnapshots,
+      deviceStatuses: result.deviceStatuses,
+      detectedFaces: result.detectedFaces,
+      isUsingRealIoT: result.isUsingRealIoT,
+      iotError: result.iotError,
       simulatedLatencyMs: stopwatch.elapsedMicroseconds / 1000.0,
       isRefreshingIoT: false,
+    );
+  }
+
+  Future<void> _refreshIoTDataBackground() async {
+    final result = await MockIoTService.fetchIntegratedData();
+    if (!mounted) return;
+    state = state.copyWith(
+      sensorReadings: result.sensorReadings,
+      cameraSnapshots: result.cameraSnapshots,
+      deviceStatuses: result.deviceStatuses,
+      detectedFaces: result.detectedFaces,
+      isUsingRealIoT: result.isUsingRealIoT,
+      iotError: result.iotError,
     );
   }
 
@@ -63,10 +90,18 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   }
 
   void selectLocation(String? locationId) {
+    _iotTimer?.cancel();
     if (locationId != null) {
       // Switching to Condition B (IoT Mode)
       refreshIoTData();
       state = state.copyWith(selectedLocationId: locationId);
+
+      // Polling real-time locally every 3 seconds
+      _iotTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+        if (state.selectedLocationId != null && !state.isRefreshingIoT) {
+          _refreshIoTDataBackground();
+        }
+      });
     } else {
       // Switching back to Condition A (Cuaca Lokal)
       state = state.copyWith(clearLocationId: true);

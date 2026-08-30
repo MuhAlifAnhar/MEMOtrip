@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/location_service.dart';
@@ -11,7 +10,6 @@ import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/bmkg_weather_card.dart';
 import '../../../../core/widgets/custom_gauge.dart';
-import '../../../../core/widgets/sensor_data_card.dart';
 import '../../domain/entities/sensor_reading.dart';
 import '../providers/dashboard_provider.dart';
 import '../../../../core/widgets/community_review_card.dart';
@@ -213,7 +211,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
 
                   // ── EWS Banner (only in Condition B when danger) ──
                   if (state.selectedLocationId != null && isSelectedDanger)
-                    _buildEwsBanner(selectedSensor!),
+                    _buildEwsBanner(selectedSensor),
+
+                  // ── IoT Status/Error Banner (when Losari selected) ──
+                  if (state.selectedLocationId == 'losari' && state.iotError != null)
+                    _buildIotErrorBanner(state.iotError!),
 
                   const SizedBox(height: AppSpacing.lg),
                   AnimatedSwitcher(
@@ -262,7 +264,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                   borderRadius: AppSpacing.borderRadiusFull,
                 ),
                 child: Text(
-                  'Data Latency: ${state.simulatedLatencyMs.toStringAsFixed(2)} ms (Simulated via Firebase Mock)',
+                  state.isUsingRealIoT && state.selectedLocationId == 'losari'
+                      ? 'Data Latency: ${state.simulatedLatencyMs.toStringAsFixed(2)} ms (Real-time dari Raspberry Pi 4)'
+                      : 'Data Latency: ${state.simulatedLatencyMs.toStringAsFixed(2)} ms (Simulated via Firebase Mock)',
                   style: const TextStyle(color: Colors.white, fontSize: 10),
                 ),
               ),
@@ -329,6 +333,42 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                           .copyWith(color: Colors.white.withOpacity(0.9)),
                     ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIotErrorBanner(String error) {
+    return _AnimatedSection(
+      index: 0,
+      child: Padding(
+        padding: const EdgeInsets.only(
+          left: AppSpacing.lg,
+          right: AppSpacing.lg,
+          top: AppSpacing.md,
+          bottom: AppSpacing.xs,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.base),
+          decoration: BoxDecoration(
+            color: Colors.amber[50],
+            borderRadius: AppSpacing.borderRadiusCard,
+            border: Border.all(color: Colors.amber[300]!),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline_rounded,
+                  color: Colors.amber, size: 24),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  error,
+                  style: AppTypography.bodySmall
+                      .copyWith(color: Colors.amber[900], fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -785,9 +825,51 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(28),
-                    child: AppNetworkImage(
-                      imageUrl: snapshot.imageUrl,
-                      fit: BoxFit.cover,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: AppNetworkImage(
+                            imageUrl: snapshot.imageUrl,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned(
+                          top: 16,
+                          left: 16,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: state.isUsingRealIoT && selected.locationId == 'losari'
+                                  ? Colors.redAccent.withOpacity(0.85)
+                                  : Colors.blueAccent.withOpacity(0.85),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  state.isUsingRealIoT && selected.locationId == 'losari'
+                                      ? Icons.videocam_rounded
+                                      : Icons.sim_card_outlined,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  state.isUsingRealIoT && selected.locationId == 'losari'
+                                      ? 'Webcam RPi 4 (Real)'
+                                      : 'Simulasi Alat',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -906,7 +988,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildGridItem(Icons.groups_rounded, 'Keramaian', snapshot.crowdLevel, Colors.blue),
+                      _buildGridItem(
+                        Icons.groups_rounded,
+                        'Keramaian',
+                        selected.locationId == 'losari' && state.isUsingRealIoT && state.detectedFaces != null
+                            ? '${snapshot.crowdLevel}\n(${state.detectedFaces} Wajah)'
+                            : snapshot.crowdLevel,
+                        Colors.blue,
+                      ),
                       _buildGridItem(Icons.wb_sunny_outlined, 'Sinar UV', '3', Colors.blue),
                       _buildBadgeItem(),
                     ],
