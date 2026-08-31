@@ -37,7 +37,7 @@ class DevicesPage extends StatelessWidget {
                           ? AppTypography.headlineLarge
                           : AppTypography.displaySmall),
                   const SizedBox(height: AppSpacing.xs),
-                  Text('BME280 Sensor & ESP32-CAM — 3 Lokasi',
+                  Text('DHT22 / BME280 Sensor & Webcam — 3 Lokasi',
                       style: AppTypography.bodyMedium
                           .copyWith(color: AppColors.textSecondary)),
                 ],

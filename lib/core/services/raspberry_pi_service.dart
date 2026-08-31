@@ -81,13 +81,16 @@ class RaspberryPiService {
     double? suhu;
     double? kelembapan;
     try {
-      final rtdbUri = Uri.parse('https://memotrip-2026-default-rtdb.firebaseio.com/DHT22.json');
-      final rtdbResponse = await http.get(rtdbUri).timeout(const Duration(seconds: 3));
+      final rtdbUri = Uri.parse(
+          'https://memotrip-2026-default-rtdb.firebaseio.com/DHT22.json');
+      final rtdbResponse =
+          await http.get(rtdbUri).timeout(const Duration(seconds: 3));
       if (rtdbResponse.statusCode == 200 && rtdbResponse.body != 'null') {
         final rtdbData = json.decode(rtdbResponse.body) as Map<String, dynamic>;
         suhu = (rtdbData['Suhu'] as num?)?.toDouble();
         kelembapan = (rtdbData['Kelembapan'] as num?)?.toDouble();
-        print('DEBUG RTDB: DHT22 fetched successfully: Suhu=$suhu, Kelembapan=$kelembapan');
+        print(
+            'DEBUG RTDB: DHT22 fetched successfully: Suhu=$suhu, Kelembapan=$kelembapan');
       }
     } catch (e) {
       print('DEBUG ERROR RTDB: Gagal mengambil data DHT22 dari RTDB: $e');
@@ -167,6 +170,30 @@ class RaspberryPiService {
       }
 
       await _db.collection(_collection).add(dataToSync);
+
+      // Auto-cleanup: keep only the most recent 15 documents to prevent database bloat.
+      // Runs in background (non-blocking).
+      _db
+          .collection(_collection)
+          .orderBy('clientTimestamp', descending: true)
+          .get()
+          .then((snapshot) {
+        if (snapshot.docs.length > 15) {
+          final batch = _db.batch();
+          for (int i = 15; i < snapshot.docs.length; i++) {
+            batch.delete(snapshot.docs[i].reference);
+          }
+          batch.commit().then((_) {
+            print(
+                'DEBUG: Auto-cleanup Firestore berhasil. Menghapus ${snapshot.docs.length - 15} data lama.');
+          }).catchError((e) {
+            print(
+                'DEBUG ERROR: Gagal menjalankan auto-cleanup batch commit: $e');
+          });
+        }
+      }).catchError((e) {
+        print('DEBUG ERROR: Gagal mengambil data untuk auto-cleanup: $e');
+      });
 
       // Update sync markers on success
       _lastSyncTime = now;
