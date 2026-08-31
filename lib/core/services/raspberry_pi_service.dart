@@ -8,8 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// Endpoint: http://10.201.52.51:5000/api/data
 /// Response: {"faces": [{"confidence": 36.2, "id": 1}], "total_faces": 1}
 ///
-/// This service is used for the Pantai Losari location only.
-/// Other locations continue to use MockIoTService simulations.
+/// This service is used for the Cafe Dobar Coffee location only.
 class RaspberryPiService {
   RaspberryPiService._();
 
@@ -149,8 +148,8 @@ class RaspberryPiService {
 
     try {
       final Map<String, dynamic> dataToSync = {
-        'locationId': 'losari',
-        'locationName': 'Pantai Losari',
+        'locationId': 'dobar',
+        'locationName': 'Cafe Dobar Coffee',
         'totalFaces': result.totalFaces,
         'crowdLevel': result.crowdLevel,
         'faces': result.faces
@@ -199,7 +198,7 @@ class RaspberryPiService {
       _lastSyncTime = now;
       _lastSyncedResult = result;
       print(
-          'DEBUG: Data IoT Pantai Losari berhasil disinkronkan ke Firestore.');
+          'DEBUG: Data IoT Cafe Dobar Coffee berhasil disinkronkan ke Firestore.');
     } catch (e) {
       print('DEBUG ERROR: Gagal menulis telemetri IoT ke Firestore: $e');
     }

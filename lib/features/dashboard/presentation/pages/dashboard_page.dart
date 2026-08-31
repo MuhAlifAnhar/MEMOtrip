@@ -213,8 +213,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                   if (state.selectedLocationId != null && isSelectedDanger)
                     _buildEwsBanner(selectedSensor),
 
-                  // ── IoT Status/Error Banner (when Losari selected) ──
-                  if (state.selectedLocationId == 'losari' && state.iotError != null)
+                  // ── IoT Status/Error Banner (when Dobar selected) ──
+                  if (state.selectedLocationId == 'dobar' && state.iotError != null)
                     _buildIotErrorBanner(state.iotError!),
 
                   const SizedBox(height: AppSpacing.lg),
@@ -264,7 +264,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                   borderRadius: AppSpacing.borderRadiusFull,
                 ),
                 child: Text(
-                  state.isUsingRealIoT && state.selectedLocationId == 'losari'
+                  state.isUsingRealIoT && state.selectedLocationId == 'dobar'
                       ? 'Data Latency: ${state.simulatedLatencyMs.toStringAsFixed(2)} ms (Real-time dari Raspberry Pi 4)'
                       : 'Data Latency: ${state.simulatedLatencyMs.toStringAsFixed(2)} ms (Simulated via Firebase Mock)',
                   style: const TextStyle(color: Colors.white, fontSize: 10),
@@ -405,7 +405,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 _buildToggle('Cuaca Lokal', state.selectedLocationId == null,
                     () => notifier.selectLocation(null)),
                 _buildToggle('IoT Monitor', state.selectedLocationId != null,
-                    () => notifier.selectLocation('losari')),
+                    () => notifier.selectLocation('dobar')),
               ],
             ),
           ),
@@ -760,49 +760,50 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
       key: const ValueKey('conditionB'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. Location Selection Chips
-        _AnimatedSection(
-          index: 0,
-          child: Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.md),
-            child: SizedBox(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                children: sensors.map((s) {
-                  final isActive = s.locationId == state.selectedLocationId;
-                  return GestureDetector(
-                    onTap: () => notifier.selectLocation(s.locationId),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.only(right: AppSpacing.md),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isActive ? const Color(0xFF2C3E50) : Colors.white,
-                        borderRadius: AppSpacing.borderRadiusFull,
-                        border: Border.all(
-                          color: const Color(0xFF2C3E50),
-                          width: 1.5,
+        // 1. Location Selection Chips (only show if multiple locations exist)
+        if (sensors.length > 1)
+          _AnimatedSection(
+            index: 0,
+            child: Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.md),
+              child: SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  children: sensors.map((s) {
+                    final isActive = s.locationId == state.selectedLocationId;
+                    return GestureDetector(
+                      onTap: () => notifier.selectLocation(s.locationId),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.only(right: AppSpacing.md),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isActive ? const Color(0xFF2C3E50) : Colors.white,
+                          borderRadius: AppSpacing.borderRadiusFull,
+                          border: Border.all(
+                            color: const Color(0xFF2C3E50),
+                            width: 1.5,
+                          ),
+                          boxShadow: isActive ? AppColors.cardShadow : [],
                         ),
-                        boxShadow: isActive ? AppColors.cardShadow : [],
-                      ),
-                      child: Center(
-                        child: Text(
-                          s.locationName,
-                          style: AppTypography.labelMedium.copyWith(
-                            color: isActive ? Colors.white : const Color(0xFF2C3E50),
-                            fontWeight: FontWeight.w600,
+                        child: Center(
+                          child: Text(
+                            s.locationName,
+                            style: AppTypography.labelMedium.copyWith(
+                              color: isActive ? Colors.white : const Color(0xFF2C3E50),
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
           ),
-        ),
 
         // 2. Hero Image Card with Overlapping Label
         _AnimatedSection(
@@ -839,7 +840,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: state.isUsingRealIoT && selected.locationId == 'losari'
+                              color: state.isUsingRealIoT && selected.locationId == 'dobar'
                                   ? Colors.redAccent.withOpacity(0.85)
                                   : Colors.blueAccent.withOpacity(0.85),
                               borderRadius: BorderRadius.circular(16),
@@ -848,7 +849,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  state.isUsingRealIoT && selected.locationId == 'losari'
+                                  state.isUsingRealIoT && selected.locationId == 'dobar'
                                       ? Icons.videocam_rounded
                                       : Icons.sim_card_outlined,
                                   color: Colors.white,
@@ -856,7 +857,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  state.isUsingRealIoT && selected.locationId == 'losari'
+                                  state.isUsingRealIoT && selected.locationId == 'dobar'
                                       ? 'Webcam RPi 4 (Real)'
                                       : 'Simulasi Alat',
                                   style: const TextStyle(
@@ -901,7 +902,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Makassar, Sulawesi Selatan',
+                          selected.locationId == 'dobar'
+                              ? 'Parang Tambung, Kec. Tamalate, Makassar'
+                              : 'Makassar, Sulawesi Selatan',
                           style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
@@ -980,7 +983,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                   _buildGridItem(
                     Icons.groups_rounded,
                     'Keramaian',
-                    selected.locationId == 'losari' && state.isUsingRealIoT && state.detectedFaces != null
+                    selected.locationId == 'dobar' && state.isUsingRealIoT && state.detectedFaces != null
                         ? '${snapshot.crowdLevel}\n(${state.detectedFaces} Wajah)'
                         : snapshot.crowdLevel,
                     Colors.blue,

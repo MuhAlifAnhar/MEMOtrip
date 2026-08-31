@@ -2,25 +2,20 @@ import 'dart:math';
 import '../../features/dashboard/domain/entities/sensor_reading.dart';
 import 'raspberry_pi_service.dart';
 
-/// MockIoTService — Dynamic IoT Simulation Engine
+/// MockIoTService — IoT Data Engine
 ///
-/// Generates randomised BME280 sensor readings and ESP32-CAM camera
-/// snapshots for 3 target locations in Makassar:
-///   1. Pantai Losari
-///   2. CPI Makassar
-///   3. Masjid 99 Kubah
+/// Provides sensor readings and camera snapshots for the IoT monitoring
+/// location: Cafe Dobar Coffee (BTN. Tabaria, Makassar).
 ///
-/// BME280 ranges (per PRD):
+/// DHT22 ranges (fallback when sensor offline):
 ///   - Suhu       : 28 °C – 36 °C
 ///   - Kelembapan : 60 % – 90 %
-///   - Tekanan    : 1008 hPa – 1012 hPa
 ///
 /// EWS Threshold:
 ///   - Suhu > 35 °C triggers danger mode (red UI).
 ///
-/// Integration Note:
-///   Pantai Losari uses REAL data from Raspberry Pi 4 + Webcam when available.
-///   CPI Makassar and Masjid 99 Kubah remain mock/simulated.
+/// Integration:
+///   Cafe Dobar Coffee uses REAL data from Raspberry Pi 4 + Webcam + DHT22.
 class MockIoTService {
   MockIoTService._();
 
@@ -30,7 +25,7 @@ class MockIoTService {
   /// Temperature threshold for the Early Warning System.
   static const double ewsTemperatureThreshold = 35.0;
 
-  // ─── BME280 Ranges ──────────────────────────────────────
+  // ─── DHT22 Ranges (fallback when sensor offline) ────────
   static const double _suhuMin = 28.0;
   static const double _suhuMax = 36.0;
   static const double _kelembapanMin = 60.0;
@@ -38,36 +33,17 @@ class MockIoTService {
   static const double _tekananMin = 1008.0;
   static const double _tekananMax = 1012.0;
 
-  // ─── Location Definitions ───────────────────────────────
+  // ─── Location Definition ────────────────────────────────
   static const _locations = [
-    _LocationDef(id: 'losari', name: 'Pantai Losari'),
-    _LocationDef(id: 'cpi', name: 'CPI Makassar'),
-    _LocationDef(id: 'kubah99', name: 'Masjid 99 Kubah'),
+    _LocationDef(id: 'dobar', name: 'Cafe Dobar Coffee'),
   ];
 
-  // ─── ESP32-CAM Image Banks ──────────────────────────────
-  // Curated Unsplash URLs depicting crowd conditions at each site.
-
-  /// Losari — sunset / crowded waterfront scenes.
-  static const _losariImages = [
-    // Sunset at pier — crowded / lively
-    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1476673160081-cf065607f449?w=800&h=400&fit=crop',
-  ];
-
-  /// CPI — shopping mall / busy area scenes.
-  static const _cpiImages = [
-    'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=800&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=800&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=400&fit=crop',
-  ];
-
-  /// Masjid 99 Kubah — quiet / empty mosque courtyard scenes.
-  static const _kubah99Images = [
-    'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=800&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1564769625905-50e93615e769?w=800&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1545167496-5a39e453a448?w=800&h=400&fit=crop',
+  // ─── Camera Image Bank ──────────────────────────────────
+  /// Cafe Dobar Coffee — cafe / indoor scenes.
+  static const _dobarImages = [
+    'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=800&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&h=400&fit=crop',
   ];
 
   // ─── Helpers ────────────────────────────────────────────
@@ -78,60 +54,35 @@ class MockIoTService {
     return (raw * 10).roundToDouble() / 10;
   }
 
-  /// Pick a random image URL for a location.
+  /// Pick a random image URL.
   static String _randomImage(String locationId) {
-    switch (locationId) {
-      case 'losari':
-        return _losariImages[_rng.nextInt(_losariImages.length)];
-      case 'cpi':
-        return _cpiImages[_rng.nextInt(_cpiImages.length)];
-      case 'kubah99':
-        return _kubah99Images[_rng.nextInt(_kubah99Images.length)];
-      default:
-        return _losariImages.first;
-    }
+    return _dobarImages[_rng.nextInt(_dobarImages.length)];
   }
 
-  /// Determine crowd level label randomly with weighted bias:
-  ///   Losari  → mostly Ramai (sunset crowd)
-  ///   CPI     → mostly Sedang
-  ///   Kubah99 → mostly Sepi  (quiet courtyard)
+  /// Determine crowd level label randomly.
   static String _crowdLevel(String locationId) {
     final roll = _rng.nextInt(100);
-    switch (locationId) {
-      case 'losari':
-        if (roll < 60) return 'Ramai';
-        if (roll < 85) return 'Sedang';
-        return 'Sepi';
-      case 'cpi':
-        if (roll < 20) return 'Ramai';
-        if (roll < 75) return 'Sedang';
-        return 'Sepi';
-      case 'kubah99':
-        if (roll < 10) return 'Ramai';
-        if (roll < 30) return 'Sedang';
-        return 'Sepi';
-      default:
-        return 'Sedang';
-    }
+    if (roll < 40) return 'Ramai';
+    if (roll < 75) return 'Sedang';
+    return 'Sepi';
   }
 
   /// Whether a temperature value triggers danger mode.
   static bool isDanger(double suhu) => suhu > ewsTemperatureThreshold;
 
-  // ─── Public API (Synchronous / Mock) ────────────────────
+  // ─── Public API (Synchronous) ───────────────────────────
 
-  /// Generate fresh, randomised sensor readings for all 3 locations.
-  /// Each call produces new values — simulating a device refresh/poll.
+  /// Generate sensor readings for Cafe Dobar Coffee.
+  /// Uses real DHT22 data when available, falls back to random simulation.
   static List<SensorReading> generateSensorReadings() {
     return _locations.map((loc) {
       final realResult = RaspberryPiService.lastResult;
       
-      final suhu = (loc.id == 'losari' && realResult != null && realResult.suhu != null)
+      final suhu = (realResult != null && realResult.suhu != null)
           ? realResult.suhu!
           : _rand(_suhuMin, _suhuMax);
           
-      final kelembapan = (loc.id == 'losari' && realResult != null && realResult.kelembapan != null)
+      final kelembapan = (realResult != null && realResult.kelembapan != null)
           ? realResult.kelembapan!
           : _rand(_kelembapanMin, _kelembapanMax);
 
@@ -144,17 +95,17 @@ class MockIoTService {
         timestamp: DateTime.now().subtract(
           Duration(seconds: _rng.nextInt(120)),
         ),
-        isOnline: true, // all 3 locations are online in simulation
+        isOnline: true,
       );
     }).toList();
   }
 
-  /// Generate fresh camera snapshots for all 3 locations.
+  /// Generate camera snapshot for Cafe Dobar Coffee.
   static List<CameraSnapshot> generateCameraSnapshots() {
     return _locations.map((loc) {
       final realResult = RaspberryPiService.lastResult;
       
-      final crowdLevel = (loc.id == 'losari' && realResult != null)
+      final crowdLevel = (realResult != null)
           ? realResult.crowdLevel
           : _crowdLevel(loc.id);
 
@@ -163,27 +114,25 @@ class MockIoTService {
         locationName: loc.name,
         imageUrl: _randomImage(loc.id),
         crowdLevel: crowdLevel,
-        timestamp: (loc.id == 'losari' && realResult != null)
+        timestamp: (realResult != null)
             ? realResult.timestamp
             : DateTime.now().subtract(Duration(seconds: _rng.nextInt(300))),
       );
     }).toList();
   }
 
-  /// Generate device statuses for all 3 locations.
+  /// Generate device status for Cafe Dobar Coffee.
   static List<DeviceStatus> generateDeviceStatuses() {
     return _locations.map((loc) {
       final realResult = RaspberryPiService.lastResult;
       
-      final isOnline = (loc.id == 'losari' && realResult != null)
-          ? realResult.isOnline
-          : true;
+      final isOnline = (realResult != null) ? realResult.isOnline : true;
 
       return DeviceStatus(
         locationId: loc.id,
         locationName: loc.name,
         isOnline: isOnline,
-        lastHeartbeat: (loc.id == 'losari' && realResult != null)
+        lastHeartbeat: (realResult != null)
             ? realResult.timestamp
             : DateTime.now().subtract(Duration(seconds: _rng.nextInt(60))),
       );
@@ -211,18 +160,18 @@ class MockIoTService {
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  Async API — Integrates Real Raspberry Pi Data for Losari
+  //  Async API — Integrates Real Raspberry Pi Data for Dobar
   // ═══════════════════════════════════════════════════════════
 
   /// Result container from async IoT data fetch.
   /// Contains data lists + metadata about whether real data was obtained.
   static Future<IoTDataResult> fetchIntegratedData() async {
-    // 1. Generate mock data for all 3 locations first (baseline).
+    // 1. Generate baseline data.
     final mockSensors = generateSensorReadings();
     final mockSnapshots = generateCameraSnapshots();
     final mockDevices = generateDeviceStatuses();
 
-    // 2. Attempt to fetch real data from Raspberry Pi for Losari.
+    // 2. Attempt to fetch real data from Raspberry Pi.
     CrowdDetectionResult? realData;
     String? iotError;
     try {
@@ -235,9 +184,9 @@ class MockIoTService {
       iotError = 'Perangkat IoT tidak merespon — menggunakan data simulasi.';
     }
 
-    // 3. If we got real data, override Losari's crowd level in snapshots.
+    // 3. If we got real data, override crowd level in snapshots.
     final finalSnapshots = mockSnapshots.map((snap) {
-      if (snap.locationId == 'losari' && realData != null) {
+      if (snap.locationId == 'dobar' && realData != null) {
         return CameraSnapshot(
           locationId: snap.locationId,
           locationName: snap.locationName,
@@ -249,9 +198,9 @@ class MockIoTService {
       return snap;
     }).toList();
 
-    // Override Losari's sensor reading (temperature/humidity) from Realtime Database (DHT22)
+    // Override sensor reading (temperature/humidity) from DHT22
     final finalSensors = mockSensors.map((sensor) {
-      if (sensor.locationId == 'losari' && realData != null) {
+      if (sensor.locationId == 'dobar' && realData != null) {
         return SensorReading(
           locationId: sensor.locationId,
           locationName: sensor.locationName,
@@ -265,9 +214,9 @@ class MockIoTService {
       return sensor;
     }).toList();
 
-    // 4. Mark Losari device as real in device statuses.
+    // 4. Mark device as real in device statuses.
     final finalDevices = mockDevices.map((d) {
-      if (d.locationId == 'losari') {
+      if (d.locationId == 'dobar') {
         return DeviceStatus(
           locationId: d.locationId,
           locationName: d.locationName,
@@ -314,4 +263,3 @@ class _LocationDef {
   final String name;
   const _LocationDef({required this.id, required this.name});
 }
-
