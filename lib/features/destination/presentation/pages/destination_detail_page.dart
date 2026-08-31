@@ -271,8 +271,6 @@ class _DestinationDetailPageState extends ConsumerState<DestinationDetailPage>
                                 Expanded(child: SensorDataCard(label: AppStrings.suhu, value: sensor.suhu.toStringAsFixed(1), unit: AppStrings.celsius, icon: Icons.thermostat_rounded, iconColor: AppColors.accent, isDanger: MockIoTService.isDanger(sensor.suhu))),
                                 const SizedBox(width: AppSpacing.sm),
                                 Expanded(child: SensorDataCard(label: AppStrings.kelembapan, value: sensor.kelembapan.toStringAsFixed(0), unit: AppStrings.persen, icon: Icons.water_drop_rounded, iconColor: AppColors.info)),
-                                const SizedBox(width: AppSpacing.sm),
-                                Expanded(child: SensorDataCard(label: AppStrings.tekanan, value: sensor.tekanan.toStringAsFixed(0), unit: AppStrings.hPa, icon: Icons.speed_rounded, iconColor: AppColors.warning)),
                               ],
                             ),
                           ],

@@ -233,45 +233,28 @@ class DevicesPage extends StatelessWidget {
               unit: AppStrings.persen,
               icon: Icons.water_drop_rounded,
               iconColor: AppColors.info)),
-      const SizedBox(width: AppSpacing.md),
-      Expanded(
-          child: SensorDataCard(
-              label: AppStrings.tekanan,
-              value: s.tekanan.toStringAsFixed(0),
-              unit: AppStrings.hPa,
-              icon: Icons.speed_rounded,
-              iconColor: AppColors.warning)),
     ]);
   }
 
   // Mobile: Stack vertically or 2+1 grid
   Widget _buildMobileSensors(dynamic s, dynamic d) {
-    return Column(children: [
-      Row(children: [
-        Expanded(
-            child: SensorDataCard(
-                label: AppStrings.suhu,
-                value: s.suhu.toStringAsFixed(1),
-                unit: AppStrings.celsius,
-                icon: Icons.thermostat_rounded,
-                iconColor: AppColors.accent,
-                isDanger: MockIoTService.isDanger(s.suhu))),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-            child: SensorDataCard(
-                label: AppStrings.kelembapan,
-                value: s.kelembapan.toStringAsFixed(0),
-                unit: AppStrings.persen,
-                icon: Icons.water_drop_rounded,
-                iconColor: AppColors.info)),
-      ]),
-      const SizedBox(height: AppSpacing.md),
-      SensorDataCard(
-          label: AppStrings.tekanan,
-          value: s.tekanan.toStringAsFixed(0),
-          unit: AppStrings.hPa,
-          icon: Icons.speed_rounded,
-          iconColor: AppColors.warning),
+    return Row(children: [
+      Expanded(
+          child: SensorDataCard(
+              label: AppStrings.suhu,
+              value: s.suhu.toStringAsFixed(1),
+              unit: AppStrings.celsius,
+              icon: Icons.thermostat_rounded,
+              iconColor: AppColors.accent,
+              isDanger: MockIoTService.isDanger(s.suhu))),
+      const SizedBox(width: AppSpacing.md),
+      Expanded(
+          child: SensorDataCard(
+              label: AppStrings.kelembapan,
+              value: s.kelembapan.toStringAsFixed(0),
+              unit: AppStrings.persen,
+              icon: Icons.water_drop_rounded,
+              iconColor: AppColors.info)),
     ]);
   }
 }

@@ -3,7 +3,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_spacing.dart';
 import '../constants/app_typography.dart';
 
-/// Sensor data display card for BME280 readings.
+/// Sensor data display card for DHT22 readings.
 ///
 /// When [isDanger] is `true` (suhu > 35 °C), the card switches to a
 /// red/danger colour scheme per the PRD EWS requirement.

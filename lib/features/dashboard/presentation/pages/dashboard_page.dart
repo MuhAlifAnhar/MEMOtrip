@@ -930,23 +930,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         ),
         const SizedBox(height: AppSpacing.md),
 
-        // 4. Custom Gauges Row
+        // 4. Suhu & Kelembapan Gauges (DHT22 Real Data)
         _AnimatedSection(
           index: 3,
           child: Padding(
             padding: AppSpacing.paddingSection,
             child: Row(
               children: [
-                Expanded(
-                  child: CustomGauge(
-                    label: 'Kecepatan Angin',
-                    value: '9',
-                    unit: 'km/jam',
-                    icon: Icons.air_rounded,
-                    percentage: (9.0 / 100).clamp(0.0, 1.0),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: CustomGauge(
                     label: 'Suhu Udara',
@@ -956,13 +946,23 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                     percentage: (selected.suhu / 50).clamp(0.0, 1.0),
                   ),
                 ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: CustomGauge(
+                    label: 'Kelembapan',
+                    value: selected.kelembapan.toStringAsFixed(0),
+                    unit: '%',
+                    icon: Icons.water_drop_rounded,
+                    percentage: (selected.kelembapan / 100).clamp(0.0, 1.0),
+                  ),
+                ),
               ],
             ),
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
 
-        // 5. Grid View Card (3x2)
+        // 5. Keramaian & Cuaca Badge
         _AnimatedSection(
           index: 4,
           child: Padding(
@@ -974,32 +974,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 borderRadius: BorderRadius.circular(32),
                 boxShadow: AppColors.cardShadow,
               ),
-              child: Column(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildGridItem(Icons.water_drop_outlined, 'Peluang Hujan', '58%', Colors.blue),
-                      _buildGridItem(Icons.water_rounded, 'Kelembapan', '${selected.kelembapan.toStringAsFixed(0)}%', Colors.blue),
-                      _buildGridItem(Icons.speed_rounded, 'Tekanan Udara', '${selected.tekanan.toStringAsFixed(0)}hPa', Colors.blue),
-                    ],
+                  _buildGridItem(
+                    Icons.groups_rounded,
+                    'Keramaian',
+                    selected.locationId == 'losari' && state.isUsingRealIoT && state.detectedFaces != null
+                        ? '${snapshot.crowdLevel}\n(${state.detectedFaces} Wajah)'
+                        : snapshot.crowdLevel,
+                    Colors.blue,
                   ),
-                  const SizedBox(height: 32),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildGridItem(
-                        Icons.groups_rounded,
-                        'Keramaian',
-                        selected.locationId == 'losari' && state.isUsingRealIoT && state.detectedFaces != null
-                            ? '${snapshot.crowdLevel}\n(${state.detectedFaces} Wajah)'
-                            : snapshot.crowdLevel,
-                        Colors.blue,
-                      ),
-                      _buildGridItem(Icons.wb_sunny_outlined, 'Sinar UV', '3', Colors.blue),
-                      _buildBadgeItem(),
-                    ],
-                  ),
+                  _buildBadgeItem(),
                 ],
               ),
             ),

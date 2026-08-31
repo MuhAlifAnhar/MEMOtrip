@@ -1,4 +1,4 @@
-/// Sensor reading entity — BME280 data from Firebase Realtime DB.
+/// Sensor reading entity — DHT22 data from Firebase Realtime DB.
 class SensorReading {
   final String locationId;
   final String locationName;
