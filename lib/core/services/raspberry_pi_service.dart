@@ -45,38 +45,66 @@ class RaspberryPiService {
   /// Returns [CrowdDetectionResult] on success, or `null` if the
   /// request fails (network error, timeout, malformed JSON).
   static Future<CrowdDetectionResult?> fetchCrowdData() async {
+    Map<String, dynamic> data = {};
+    int totalFaces = 0;
+    List<DetectedFace> faces = [];
+    bool isOnline = false;
+
+    // 1. Fetch camera data from Raspberry Pi 4 + Webcam
     try {
       final uri = Uri.parse('$_baseUrl$_dataEndpoint');
       final response = await http.get(uri).timeout(_timeout);
 
-      if (response.statusCode != 200) {
+      if (response.statusCode == 200) {
+        data = json.decode(response.body) as Map<String, dynamic>;
+        totalFaces = (data['total_faces'] as num?)?.toInt() ?? 0;
+        faces = (data['faces'] as List<dynamic>?)
+                ?.map((f) => DetectedFace.fromJson(f as Map<String, dynamic>))
+                .toList() ??
+            [];
+        isOnline = true;
+      } else {
         print(
             'DEBUG ERROR status: Status code dari $_baseUrl adalah ${response.statusCode}');
-        return null;
       }
-
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      final totalFaces = (data['total_faces'] as num?)?.toInt() ?? 0;
-      final faces = (data['faces'] as List<dynamic>?)
-              ?.map((f) => DetectedFace.fromJson(f as Map<String, dynamic>))
-              .toList() ??
-          [];
-
-      final result = CrowdDetectionResult(
-        totalFaces: totalFaces,
-        faces: faces,
-        crowdLevel: determineCrowdLevel(totalFaces),
-        timestamp: DateTime.now(),
-        isOnline: true,
-      );
-
-      _lastResult = result;
-      return result;
     } catch (e) {
       print(
           'DEBUG ERROR fetch: Gagal menghubungkan ke Raspberry Pi di $_baseUrl: $e');
+    }
+
+    // Fallback to mock if Raspberry Pi is offline
+    if (!isOnline) {
       return null;
     }
+
+    // 2. Fetch DHT22 sensor readings from Firebase Realtime Database (RTDB)
+    double? suhu;
+    double? kelembapan;
+    try {
+      final rtdbUri = Uri.parse('https://memotrip-2026-default-rtdb.firebaseio.com/DHT22.json');
+      final rtdbResponse = await http.get(rtdbUri).timeout(const Duration(seconds: 3));
+      if (rtdbResponse.statusCode == 200 && rtdbResponse.body != 'null') {
+        final rtdbData = json.decode(rtdbResponse.body) as Map<String, dynamic>;
+        suhu = (rtdbData['Suhu'] as num?)?.toDouble();
+        kelembapan = (rtdbData['Kelembapan'] as num?)?.toDouble();
+        print('DEBUG RTDB: DHT22 fetched successfully: Suhu=$suhu, Kelembapan=$kelembapan');
+      }
+    } catch (e) {
+      print('DEBUG ERROR RTDB: Gagal mengambil data DHT22 dari RTDB: $e');
+    }
+
+    final result = CrowdDetectionResult(
+      totalFaces: totalFaces,
+      faces: faces,
+      crowdLevel: determineCrowdLevel(totalFaces),
+      timestamp: DateTime.now(),
+      isOnline: true,
+      suhu: suhu,
+      kelembapan: kelembapan,
+    );
+
+    _lastResult = result;
+    return result;
   }
 
   /// Determine crowd level label based on total detected faces.
@@ -117,7 +145,7 @@ class RaspberryPiService {
     }
 
     try {
-      await _db.collection(_collection).add({
+      final Map<String, dynamic> dataToSync = {
         'locationId': 'losari',
         'locationName': 'Pantai Losari',
         'totalFaces': result.totalFaces,
@@ -126,10 +154,19 @@ class RaspberryPiService {
             .map((f) => {'id': f.id, 'confidence': f.confidence})
             .toList(),
         'source': 'raspberry_pi',
-        'deviceType': 'Raspberry Pi 4 + Webcam',
+        'deviceType': 'Raspberry Pi 4 + Webcam + DHT22',
         'timestamp': FieldValue.serverTimestamp(),
         'clientTimestamp': result.timestamp.toIso8601String(),
-      });
+      };
+
+      if (result.suhu != null) {
+        dataToSync['suhu'] = result.suhu;
+      }
+      if (result.kelembapan != null) {
+        dataToSync['kelembapan'] = result.kelembapan;
+      }
+
+      await _db.collection(_collection).add(dataToSync);
 
       // Update sync markers on success
       _lastSyncTime = now;
@@ -180,6 +217,8 @@ class CrowdDetectionResult {
   final String crowdLevel;
   final DateTime timestamp;
   final bool isOnline;
+  final double? suhu;
+  final double? kelembapan;
 
   const CrowdDetectionResult({
     required this.totalFaces,
@@ -187,5 +226,7 @@ class CrowdDetectionResult {
     required this.crowdLevel,
     required this.timestamp,
     this.isOnline = true,
+    this.suhu,
+    this.kelembapan,
   });
 }

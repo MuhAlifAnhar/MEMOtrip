@@ -125,12 +125,21 @@ class MockIoTService {
   /// Each call produces new values — simulating a device refresh/poll.
   static List<SensorReading> generateSensorReadings() {
     return _locations.map((loc) {
-      final suhu = _rand(_suhuMin, _suhuMax);
+      final realResult = RaspberryPiService.lastResult;
+      
+      final suhu = (loc.id == 'losari' && realResult != null && realResult.suhu != null)
+          ? realResult.suhu!
+          : _rand(_suhuMin, _suhuMax);
+          
+      final kelembapan = (loc.id == 'losari' && realResult != null && realResult.kelembapan != null)
+          ? realResult.kelembapan!
+          : _rand(_kelembapanMin, _kelembapanMax);
+
       return SensorReading(
         locationId: loc.id,
         locationName: loc.name,
         suhu: suhu,
-        kelembapan: _rand(_kelembapanMin, _kelembapanMax),
+        kelembapan: kelembapan,
         tekanan: _rand(_tekananMin, _tekananMax),
         timestamp: DateTime.now().subtract(
           Duration(seconds: _rng.nextInt(120)),
@@ -143,14 +152,20 @@ class MockIoTService {
   /// Generate fresh camera snapshots for all 3 locations.
   static List<CameraSnapshot> generateCameraSnapshots() {
     return _locations.map((loc) {
+      final realResult = RaspberryPiService.lastResult;
+      
+      final crowdLevel = (loc.id == 'losari' && realResult != null)
+          ? realResult.crowdLevel
+          : _crowdLevel(loc.id);
+
       return CameraSnapshot(
         locationId: loc.id,
         locationName: loc.name,
         imageUrl: _randomImage(loc.id),
-        crowdLevel: _crowdLevel(loc.id),
-        timestamp: DateTime.now().subtract(
-          Duration(seconds: _rng.nextInt(300)),
-        ),
+        crowdLevel: crowdLevel,
+        timestamp: (loc.id == 'losari' && realResult != null)
+            ? realResult.timestamp
+            : DateTime.now().subtract(Duration(seconds: _rng.nextInt(300))),
       );
     }).toList();
   }
@@ -158,13 +173,19 @@ class MockIoTService {
   /// Generate device statuses for all 3 locations.
   static List<DeviceStatus> generateDeviceStatuses() {
     return _locations.map((loc) {
+      final realResult = RaspberryPiService.lastResult;
+      
+      final isOnline = (loc.id == 'losari' && realResult != null)
+          ? realResult.isOnline
+          : true;
+
       return DeviceStatus(
         locationId: loc.id,
         locationName: loc.name,
-        isOnline: true,
-        lastHeartbeat: DateTime.now().subtract(
-          Duration(seconds: _rng.nextInt(60)),
-        ),
+        isOnline: isOnline,
+        lastHeartbeat: (loc.id == 'losari' && realResult != null)
+            ? realResult.timestamp
+            : DateTime.now().subtract(Duration(seconds: _rng.nextInt(60))),
       );
     }).toList();
   }
@@ -228,6 +249,22 @@ class MockIoTService {
       return snap;
     }).toList();
 
+    // Override Losari's sensor reading (temperature/humidity) from Realtime Database (DHT22)
+    final finalSensors = mockSensors.map((sensor) {
+      if (sensor.locationId == 'losari' && realData != null) {
+        return SensorReading(
+          locationId: sensor.locationId,
+          locationName: sensor.locationName,
+          suhu: realData.suhu ?? sensor.suhu,
+          kelembapan: realData.kelembapan ?? sensor.kelembapan,
+          tekanan: sensor.tekanan,
+          timestamp: realData.timestamp,
+          isOnline: sensor.isOnline,
+        );
+      }
+      return sensor;
+    }).toList();
+
     // 4. Mark Losari device as real in device statuses.
     final finalDevices = mockDevices.map((d) {
       if (d.locationId == 'losari') {
@@ -242,7 +279,7 @@ class MockIoTService {
     }).toList();
 
     return IoTDataResult(
-      sensorReadings: mockSensors,
+      sensorReadings: finalSensors,
       cameraSnapshots: finalSnapshots,
       deviceStatuses: finalDevices,
       detectedFaces: realData?.totalFaces,
